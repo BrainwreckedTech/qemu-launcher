@@ -81,15 +81,8 @@ done
 
 shift $((OPTIND-1))
 
-if [ ${EUID} != 0 -o -z "${SUDO_USER}" ]; then
-  if [ -z "${PKEXEC_UID}" ]; then
-    echo "Must use sudo or pkexec to run as root." && exit 1
-  else
-    SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
-  fi
-else
-  echo "Must use sudo or pkexec to run as root." && exit 1
-fi
+[ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
+[ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
 
 if ${CROOT}; then
   LOOPD=$(sudo losetup -fP --show ${PRIDR})
