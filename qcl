@@ -129,7 +129,7 @@ if ${FRMTP}; then
 fi
 
 # This was supposed to be a tweak that depended on whether the image
-# was file or a device, but it was found that cache=none was faster
+# was a file or a device, but it was found that cache=none was faster
 # in both cases.
 #
 #[ -n "${PRIDR}" ] && { [ -f "${PRIDR}" ] && PCACH=writeback || PCACH=none; }
@@ -145,11 +145,10 @@ SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=${PCACH},if=${IFACE}" && 
 [ -n "${BTISO}" ] && SDRVS+=" -drive file='${BTISO}',index=1,media=cdrom" && BTPRM="-boot d"
 [ -n "${DRISO}" ] && SDRVS+=" -drive file='${DRISO}',index=2,media=cdrom"
 
-echo "################### DRIVE PARAMETERS ####################"
-echo "$SDRVS" | sed 's/ -/\n-/g'
-echo "################### BOOT PARAMETERS ####################"
-echo "$BTPRM"
-echo "##################### QEMU RUNNING #####################"
+#echo "####################### DRIVE PARAMETERS #########################"
+#echo "$SDRVS" | sed 's/ -/\n-/g'
+#echo "######################## BOOT PARAMETERS #########################"
+#echo "$BTPRM"
 
 chown qemu ${PRIDR}
 
@@ -163,8 +162,11 @@ if ${VLNCH}; then
 else
   echo "VIDEO MODE: ${VIDEO}"
 fi
-echo 'Press CTRL+C to force-quit qemu'
-eval sudo qemu-system-x86_64 -runas qemu \
+echo '### USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS'
+echo '### USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM'
+echo '### USE quit TO TELL QEMU TO STOP IMMEDIATELY'
+echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
+eval "set -x; qemu-system-x86_64 -runas qemu \
   -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
   -smp cores=2 -parallel none -serial none -usbdevice ${MOUSE} \
-  -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}
+  -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}"
