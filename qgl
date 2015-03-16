@@ -1,0 +1,312 @@
+#!/bin/python2
+
+import inspect
+import ast
+import wx
+import wx.xrc
+import os.path
+import qglgui
+import subprocess
+import ConfigParser
+
+class MsgBox(wx.Dialog):
+	
+    def __init__(self, parent, text, title = ''):
+
+        wx.Dialog.__init__(self, parent, -1, title = title, size = (360,120), style = wx.CAPTION)
+        panel = wx.Panel(self, wx.ID_ANY, size = (360, 50), pos = (0,0))
+        label = wx.StaticText(panel, -1, text, pos = (50,20))        
+        panel2 = wx.Panel(self, wx.ID_ANY, size = (360, 40), pos = (0, 50))
+        btn = wx.Button(panel2, wx.ID_OK, pos = (250,7))
+        self.ShowModal()
+ 
+class MyClass(qglgui.frmMain):
+
+	def runToggleDrives(self,event):
+
+		if self.cbxHDD1.GetValue() == True:
+			self.lblHDD1.Enable()
+			self.fpcHDD1.Enable()
+		else:
+			self.lblHDD1.Disable()
+			self.fpcHDD1.Disable()
+
+		if self.cbxHDD2.GetValue() == True:
+			self.lblHDD2.Enable()
+			self.fpcHDD2.Enable()
+		else:
+			self.lblHDD2.Disable()
+			self.fpcHDD2.Disable()
+
+		if self.cbxROM1.GetValue() == True:
+			self.lblROM1.Enable()
+			self.fpcROM1.Enable()
+		else:
+			self.lblROM1.Disable()
+			self.fpcROM1.Disable()
+
+		if self.cbxROM2.GetValue() == True:
+			self.lblROM2.Enable()
+			self.fpcROM2.Enable()
+		else:
+			self.lblROM2.Disable()
+			self.fpcROM2.Disable()
+
+		if self.cbxFDD.GetValue() == True:
+			self.lblFDD.Enable()
+			self.fpcFDD.Enable()
+		else:
+			self.lblFDD.Disable()
+			self.fpcFDD.Disable()
+
+	def runToggleControls(self,event):
+
+			
+		if self.cbxChroot.GetValue() == True:
+			self.cbxTerm.SetValue(True)
+			self.cbxTerm.Disable()
+			self.txtTerm.Enable()
+			self.cbxHDD1.SetValue(True)
+			self.cbxHDD1.Disable()
+			self.cbxHDD2.Disable()
+			self.lblHDD2.Disable()
+			self.fpcHDD2.Disable()
+			self.cbxROM1.Disable()
+			self.lblROM1.Disable()
+			self.fpcROM1.Disable()
+			self.cbxROM2.Disable()
+			self.lblROM2.Disable()
+			self.fpcROM2.Disable()
+			self.cbxFDD.Disable()
+			self.lblFDD.Disable()
+			self.fpcFDD.Disable()
+			self.cbxMouse.Disable()
+			self.cbxIDE.Disable()
+			self.cbxSecVirtIO.Disable()
+			self.cbxQXL.Disable()
+			self.lblRAM.Disable()
+			self.spnRAM.Disable()
+			self.lblXPort.Disable()
+			self.spnXPort.Disable()
+		else:
+			self.cbxTerm.Enable()
+			self.cbxHDD1.Enable()
+			self.cbxHDD2.Enable()
+			self.cbxROM1.Enable()
+			self.cbxROM2.Enable()
+			self.cbxFDD.Enable()
+			self.runToggleDrives(event)
+			self.cbxMouse.Enable()
+			self.cbxIDE.Enable()
+			if self.cbxIDE.GetValue() == True:
+				self.cbxSecVirtIO.Enable()
+			self.cbxQXL.Enable()
+			self.lblRAM.Enable()
+			self.spnRAM.Enable()
+			self.lblXPort.Enable()
+			self.spnXPort.Enable()
+			
+	def runToggleChroot(self, event):
+
+		if self.cbxHDD1.GetValue() == False:
+			self.cbxChroot.SetValue(False)
+			self.cbxChroot.Disable()
+			self.runToggleControls(event)
+		else:
+			self.cbxChroot.Enable()
+			self.lblHDD1.Enable()
+			self.fpcHDD1.Enable()
+
+	def runToggleSecVirtIO(self,event):
+
+		if self.cbxIDE.GetValue() == True:
+			self.cbxSecVirtIO.Enable()
+		else:
+			self.cbxSecVirtIO.Disable()
+
+	def runToggleTerm(self,event):
+		
+		if self.cbxTerm.GetValue() == False:
+			self.lblTerm.Disable()
+			self.txtTerm.Disable()
+			self.cbxChroot.Disable()
+		else:
+			self.lblTerm.Enable()
+			self.txtTerm.Enable()
+			self.cbxChroot.Enable()
+
+	def runLaunchVM(self,event):
+
+		self.runSaveConfig(event)
+
+		bolErrorFound = False
+		prcFindQCL = subprocess.Popen(['which','qcl'], stdout=subprocess.PIPE)
+		strFindQCL = prcFindQCL.stdout.read()
+		strFindQCL = strFindQCL.strip('\n\r ')
+		print 'Found qcl at ' + strFindQCL
+		
+		if self.cbxTerm.GetValue() == True:
+			strCommandLine = self.txtTerm.GetValue() + ' sudo ' + strFindQCL
+		else:
+			strCommandLine = 'pkexec --user root ' + strFindQCL
+		
+		if self.cbxHDD1.GetValue() == True:
+			if self.fpcHDD1.GetPath() != '':
+				if os.path.exists(self.fpcHDD1.GetPath()) == True:
+					strCommandLine += ' -p ' + self.fpcHDD1.GetPath()
+				else:
+					bolErrorFound = True
+					dialog = wx.Dialog(None)
+					MsgBox(dialog, self.fpcHDD1.GetPath() + ' does not exist.', 'Error!')
+					dialog.Destroy()
+			else:
+				bolErrorFound = True
+				dialog = wx.Dialog(None)
+				MsgBox(dialog, 'Nothing specified for Primary HDD.', 'Error!')
+				dialog.Destroy()
+		
+		if self.cbxHDD2.GetValue() == True and self.cbxHDD2.IsEnabled() == True:
+			if self.fpcHDD2.GetPath() != '':
+				if os.path.exists(self.fpcHDD2.GetPath()) == True:
+					strCommandLine += ' -s ' + self.fpcHDD2.GetPath()
+				else:
+					bolErrorFound = True
+					dialog = wx.Dialog(None)
+					MsgBox(dialog, self.fpcHDD2.GetPath() + ' does not exist.', 'Error!')
+					dialog.Destroy()
+			else:
+				bolErrorFound = True
+				dialog = wx.Dialog(None)
+				MsgBox(dialog, 'Nothing specified for Secondary HDD.', 'Error!')
+				dialog.Destroy()
+
+		if self.cbxROM1.GetValue() == True and self.cbxROM1.IsEnabled() == True:
+			if self.fpcROM1.GetPath() != '':
+				if os.path.exists(self.fpcROM1.GetPath()) == True:
+					strCommandLine += ' -b ' + self.fpcROM1.GetPath()
+				else:
+					bolErrorFound = True
+					dialog = wx.Dialog(None)
+					MsgBox(dialog, self.fpcROM1.GetPath() + ' does not exist.', 'Error!')
+					dialog.Destroy()
+			else:
+				bolErrorFound = True
+				dialog = wx.Dialog(None)
+				MsgBox(dialog, 'Nothing specified for Primary ROM.', 'Error!')
+				dialog.Destroy()
+
+		if self.cbxROM2.GetValue() == True and self.cbxROM2.IsEnabled() == True:
+			if self.fpcROM2.GetPath() != '':
+				if os.path.exists(self.fpcROM2.GetPath()) == True:
+					strCommandLine += ' -d ' + self.fpcROM2.GetPath()
+				else:
+					bolErrorFound = True
+					dialog = wx.Dialog(None)
+					MsgBox(dialog, self.fpcROM2.GetPath() + ' does not exist.', 'Error!')
+					dialog.Destroy()
+			else:
+				bolErrorFound = True
+				dialog = wx.Dialog(None)
+				MsgBox(dialog, 'Nothing specified for Secondary ROM.', 'Error!')
+				dialog.Destroy()
+
+		if self.cbxFDD.GetValue() == True and self.cbxFDD.IsEnabled() == True:
+			if self.fpcFDD.GetPath() != '':
+				if os.path.exists(self.fpcFDD.GetPath()) == True:
+					strCommandLine += ' -a ' + self.fpcFDD.GetPath()
+				else:
+					bolErrorFound = True
+					dialog = wx.Dialog(None)
+					MsgBox(dialog, self.fpcFDD.GetPath() + ' does not exist.', 'Error!')
+					dialog.Destroy()
+			else:
+				bolErrorFound = True
+				dialog = wx.Dialog(None)
+				MsgBox(dialog, 'Nothing specified for FDD Image.', 'Error!')
+				dialog.Destroy()
+
+		if bolErrorFound == False:
+			if self.cbxChroot.IsEnabled() == True and self.cbxChroot.GetValue() == True:
+				strCommandLine += ' -c'
+			else:
+				if self.cbxMouse.GetValue() == True:
+					strCommandLine += ' -u'
+				if self.cbxIDE.GetValue() == True:
+					strCommandLine += ' -i'
+					if self.cbxSecVirtIO.GetValue == True:
+						strCommandLine += ' -v'
+				if self.cbxQXL.GetValue() == True:
+					strCommandLine += ' -q'
+				strCommandLine += ' -m ' + str(self.spnRAM.GetValue())
+				strCommandLine += ' -x ' + str(self.spnXPort.GetValue())
+			print 'New Detached Process: ' + strCommandLine
+			subprocess.Popen(strCommandLine, shell=True)
+
+	def runLoadConfig(self, event):
+		print 'Loading configuration'
+		if os.path.isfile(os.getenv('HOME') + "/.config/qgl.ini") == True:
+			appConfig = ConfigParser.ConfigParser()
+			appConfig.read(os.getenv('HOME') + "/.config/qgl.ini")
+			self.fpcHDD1.SetPath(appConfig.get('FileLocations','hdd1'))
+			self.fpcHDD2.SetPath(appConfig.get('FileLocations','hdd2'))
+			self.fpcROM1.SetPath(appConfig.get('FileLocations','rom1'))
+			self.fpcROM2.SetPath(appConfig.get('FileLocations','rom2'))
+			self.fpcFDD.SetPath(appConfig.get('FileLocations','fdd'))
+			self.cbxTerm.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','term')))
+			self.cbxHDD1.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','hdd1')))
+			self.cbxHDD2.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','hdd2')))
+			self.cbxROM1.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','rom1')))
+			self.cbxROM2.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','rom2')))
+			self.cbxFDD.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','fdd')))
+			self.cbxChroot.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','chroot')))
+			self.cbxMouse.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','mouse')))
+			self.cbxIDE.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','ide')))
+			self.cbxSecVirtIO.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','svio')))
+			self.cbxQXL.SetValue(ast.literal_eval(appConfig.get('ToggleOptions','qxl')))
+			self.txtTerm.SetValue(appConfig.get('OtherSettings','term'))
+			self.spnRAM.SetValue(int(appConfig.get('OtherSettings','ram')))
+			self.spnXPort.SetValue(int(appConfig.get('OtherSettings','port')))
+		else:
+			print 'Config file ~/.config/qgl.ini not found.'
+
+	def runSaveConfig(self, event):
+		print 'Saving configuration.'
+		cfgfile = open(os.getenv('HOME') + "/.config/qgl.ini",'w')
+		appConfig = ConfigParser.ConfigParser()
+		appConfig.add_section('FileLocations')
+		appConfig.set('FileLocations','hdd1',self.fpcHDD1.GetPath())
+		appConfig.set('FileLocations','hdd2',self.fpcHDD2.GetPath())
+		appConfig.set('FileLocations','rom1',self.fpcROM1.GetPath())
+		appConfig.set('FileLocations','rom2',self.fpcROM2.GetPath())
+		appConfig.set('FileLocations','fdd',self.fpcFDD.GetPath())
+		appConfig.add_section('ToggleOptions')
+		appConfig.set('ToggleOptions','term',self.cbxTerm.GetValue())
+		appConfig.set('ToggleOptions','hdd1',self.cbxHDD1.GetValue())
+		appConfig.set('ToggleOptions','hdd2',self.cbxHDD2.GetValue())
+		appConfig.set('ToggleOptions','rom1',self.cbxROM1.GetValue())
+		appConfig.set('ToggleOptions','rom2',self.cbxROM2.GetValue())
+		appConfig.set('ToggleOptions','fdd',self.cbxFDD.GetValue())
+		appConfig.set('ToggleOptions','chroot',self.cbxChroot.GetValue())
+		appConfig.set('ToggleOptions','mouse',self.cbxMouse.GetValue())
+		appConfig.set('ToggleOptions','ide',self.cbxIDE.GetValue())
+		appConfig.set('ToggleOptions','svio',self.cbxSecVirtIO.GetValue())
+		appConfig.set('ToggleOptions','qxl',self.cbxQXL.GetValue())
+		appConfig.add_section('OtherSettings')
+		appConfig.set('OtherSettings','term',self.txtTerm.GetValue())
+		appConfig.set('OtherSettings','ram',self.spnRAM.GetValue())
+		appConfig.set('OtherSettings','port',self.spnXPort.GetValue())
+		appConfig.write(cfgfile)
+		cfgfile.close()
+
+	def runAboutDialog(self, event):
+		frame = qglgui.frmAbout(None)
+		frame.Show(True)
+		
+	def runExitApp(self,event):
+		self.Close()
+
+app = wx.App(False)
+frame = MyClass(None)
+frame.runLoadConfig(None)
+frame.Show(True)
+app.MainLoop()	

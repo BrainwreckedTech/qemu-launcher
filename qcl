@@ -1,0 +1,166 @@
+#!/bin/sh
+
+# NOTES:
+# - Use VNC or QXL/SPICE so qemu can run as another user
+# - Must use nomodeset with QXL or DMs may crash on user logout or shutdown
+
+function show_help() {
+cat <<EndOfHelp
+usage: ${0} [- options...]
+
+main options:
+
+      -i             Use IDE disks instead of default VIRTIO
+      -m <MiB size>  Specify RAM available to VM  
+      -p </dev/part> Partition that serves as the primary bootable drive
+      -s </dev/part> Partition that serves as the secondary drive
+      -v </dev/part> Partition that serves as the secondary drive, VIRTIO forced
+                       (Used when you can't use VirtIO to install Windows)
+      -u             Use USB mouse instead of tablet device
+      -q             Use QXL/SPICE instead of VNC
+      -w             Don't launch SPICE/vncviewer directly
+      -x             Specifiy X Display number
+      
+Image options:
+
+      -a </path/to/img> Floppy disk
+      -b </path/to/iso> Bootable ISO (will boot this instead of primary drive)
+      -d </path/to/iso> Seconday ISO (for drivers, etc.)
+      
+Utilties:
+
+      -c              Chroot into partition (diagnostics, repairs, etc.)
+      -f              Format partition (MBR partition scheme)
+      -h              This help text.
+      -l </dev/drive> List partitions on drive that have no known format.
+
+Notes:
+
+    * GPT partitions of type MBR Parition Scheme are expected.
+    * There's no CLI tool to list partition formats, as set in the parition
+           table, to stdout.
+    * Most tools simply look at the first sector of partitions for the format.
+    * Initialization creates an MBR table inside the partition, creates a
+          single partition from 1MiB to -1s, formats it ext4, and creates a
+          swap file equal to the size specified by -m <MiB size>.
+    * Chroot uses losetup to access the partition within the partition
+EndOfHelp
+}
+
+
+NFSMT=/mnt/nfs
+MOUSE=tablet
+XDISP=50
+VIDEO="std -nographic -vnc :${XDISP}"
+CROOT=false
+FRMTP=false
+IFACE=virtio
+VLNCH=true
+
+while getopts "a:b:cd:fhil:m:p:rs:uv:wx:" opt; do
+  case "$opt" in
+    a) FDIMG="${OPTARG}" ;;
+    b) BTISO="${OPTARG}" ;;
+    c) CROOT=true        ;;
+    d) DRISO="${OPTARG}" ;;
+    f) FRMTP=true        ;;
+    h) show_help; exit 0 ;;
+    i) IFACE=ide         ;;
+    l) LSPTD="${OPTARG}" ;;
+    m) RAMSZ="${OPTARG}" ;;
+    p) PRIDR="${OPTARG}" ;;
+    q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
+    s) SCNDR="${OPTARG}" ;;
+    u) MOUSE="mouse   "  ;;
+    v) VIODR="${OPTARG}" ;;
+    w) VLNCH=false       ;;
+    x) XDISP="${OPTARG}" ; VIDEO="std -nographic -vnc :${XDISP}" ;;
+    '?') show_help >&2 && exit 1;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+if [ ${EUID} != 0 -o -z "${SUDO_USER}" ]; then
+  if [ -z "${PKEXEC_UID}" ]; then
+    echo "Must use sudo or pkexec to run as root." && exit 1
+  else
+    SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
+  fi
+else
+  echo "Must use sudo or pkexec to run as root." && exit 1
+fi
+
+if ${CROOT}; then
+  LOOPD=$(sudo losetup -fP --show ${PRIDR})
+  fsck -faMT ${LOOPD}p1
+  mkdir -p /mnt/crl
+  mount -v ${LOOPD}p1 /mnt/crl
+  mkdir -p /mnt/crl/${NFSMT}
+  mount -v --bind ${NFSMT} /mnt/crl/${NFSMT}
+  arch-chroot /mnt/crl
+  umount /mnt/crl/${NFSMT}
+  umount /mnt/crl
+  losetup -d ${LOOPD}
+  exit 0
+fi
+
+if [ -n "${LSPTD}" ]; then
+  parted ${LSPTD} unit GB print |
+    grep '^[0123456789 ]' |
+    grep -v 'ext[234]\|ntfs\|btrfs\|xfs\|fat32\|reiserfs' |
+    sed 's/^ //g' |
+    sed 's/  */ /g' |
+    cut -d\  -f1,4- |
+    sed 's/\([[:digit:]]\) \([[:digit:]]\)/\1\t\2/g' |
+    sed 's/GB /GB\t/g' |
+    sed "s/^/${LSPTD:5}/g"
+  exit 0
+fi
+
+if ${FRMTP}; then
+  set -x
+    type dcfldd &> /dev/null && DDBIN='dcfldd' || DDBIN='dd'
+    ${DDBIN} if=/dev/zero of=${PRIDR} bs=1M
+    echo -ne "i\n" | sudo parted ${PRIDR} mklabel msdos
+    echo -ne "i\ni\n" | sudo parted ${PRIDR} mkpart primary ext4 1MiB -- -1s
+    parted ${PRIDR:0:8} name ${PRIDR:8}
+    LOOPD="$(sudo losetup -fP --show ${PRIDR})"
+    mkfs -t ext4 ${LOOPD}p1
+    mkdir -p /mnt/crl
+    mount ${LOOPD}p1 /mnt/crl
+    ${DDBIN} if=/dev/zero of=/mnt/crl/swapfile bs=1M count=${RAMSZ}
+    umount /mnt/crl
+    losetp -d ${LOOPD}
+  set +x
+fi
+
+SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
+[ -n "${FDIMG}" ] && SDRVS+=" -drive file='${FDIMG}',index=0,if=floppy"
+[ -n "${SCNDR}" ] && SDRVS+=" -drive file='${SCNDR}',index=1,media=disk,cache=writeback,if=${IFACE}"
+[ -n "${VIODR}" ] && SDRVS+=" -drive file='${VIODR}',index=1,media=disk,cache=writeback,if=virtio"
+[ -n "${BTISO}" ] && SDRVS+=" -drive file='${BTISO}',index=1,media=cdrom" && BTPRM="-boot d"
+[ -n "${DRISO}" ] && SDRVS+=" -drive file='${DRISO}',index=2,media=cdrom"
+
+echo "################### DRIVE PARAMETERS ####################"
+echo "$SDRVS" | sed 's/ -/\n-/g'
+echo "################### BOOT PARAMETERS ####################"
+echo "$BTPRM"
+echo "##################### QEMU RUNNING #####################"
+
+chown qemu ${PRIDR}
+if ${VLNCH}; then
+  case ${VIDEO} in
+    *vnc*)
+      bash -c "sleep 1; su -c 'DISPLAY=:0.0 vncviewer :${XDISP}' - ${SUDO_USER}" &> /dev/null & ;;
+    *qxl*)
+      bash -c "sleep 1; su -c 'DISPLAY=:0.0 spicec -h localhost -p 60${XDISP} &> /dev/null' - ${SUDO_USER}" & ;;
+  esac
+else
+  echo "VIDEO MODE: ${VIDEO}"
+fi
+echo 'Press CTRL+C to force-quit qemu'
+eval sudo qemu-system-x86_64 -runas qemu \
+  -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
+  -smp cores=2 -parallel none -serial none -usbdevice ${MOUSE} \
+  -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}
