@@ -56,6 +56,7 @@ CROOT=false
 FRMTP=false
 IFACE=virtio
 VLNCH=true
+CORES=$(expr $(expr $(grep -c ^processor /proc/cpuinfo) + 1) / 2)
 
 while getopts "a:b:cd:fhil:m:p:rs:uv:wx:" opt; do
   case "$opt" in
@@ -83,6 +84,8 @@ shift $((OPTIND-1))
 
 [ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
+
+
 
 if ${CROOT}; then
   LOOPD=$(sudo losetup -fP --show ${PRIDR})
@@ -168,5 +171,5 @@ echo '### USE quit TO TELL QEMU TO STOP IMMEDIATELY'
 echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
 eval "set -x; qemu-system-x86_64 -runas qemu \
   -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
-  -smp cores=2 -parallel none -serial none -usbdevice ${MOUSE} \
+  -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
   -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}"

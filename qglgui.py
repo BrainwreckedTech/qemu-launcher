@@ -17,7 +17,7 @@ import wx.xrc
 class frmMain ( wx.Frame ):
 	
 	def __init__( self, parent ):
-		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"QEMU VM Launcher", pos = wx.DefaultPosition, size = wx.Size( 415,445 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"QEMU VM Launcher", pos = wx.DefaultPosition, size = wx.Size( 400,435 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
 		
 		self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
 		
@@ -33,9 +33,11 @@ class frmMain ( wx.Frame ):
 		
 		self.lblTerm = wx.StaticText( self, wx.ID_ANY, u"Terminal", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.lblTerm.Wrap( -1 )
-		fgsImages.Add( self.lblTerm, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5 )
+		fgsImages.Add( self.lblTerm, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5 )
 		
-		self.txtTerm = wx.TextCtrl( self, wx.ID_ANY, u"xterm -e", wx.DefaultPosition, wx.Size( 310,-1 ), 0 )
+		self.txtTerm = wx.TextCtrl( self, wx.ID_ANY, u"xterm -e", wx.DefaultPosition, wx.Size( -1,-1 ), 0 )
+		self.txtTerm.SetMinSize( wx.Size( 300,-1 ) )
+		
 		fgsImages.Add( self.txtTerm, 0, wx.ALL, 5 )
 		
 		self.cbxHDD1 = wx.CheckBox( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -47,7 +49,8 @@ class frmMain ( wx.Frame ):
 		fgsImages.Add( self.lblHDD1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5 )
 		
 		self.fpcHDD1 = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE|wx.FLP_USE_TEXTCTRL )
-		self.fpcHDD1.SetMinSize( wx.Size( 310,-1 ) )
+		self.fpcHDD1.SetMinSize( wx.Size( 300,-1 ) )
+		self.fpcHDD1.SetMaxSize( wx.Size( 500,-1 ) )
 		
 		fgsImages.Add( self.fpcHDD1, 0, wx.ALL, 5 )
 		
@@ -62,7 +65,7 @@ class frmMain ( wx.Frame ):
 		
 		self.fpcHDD2 = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE|wx.FLP_USE_TEXTCTRL )
 		self.fpcHDD2.Enable( False )
-		self.fpcHDD2.SetMinSize( wx.Size( 310,-1 ) )
+		self.fpcHDD2.SetMinSize( wx.Size( 300,-1 ) )
 		
 		fgsImages.Add( self.fpcHDD2, 0, wx.ALL, 5 )
 		
@@ -77,7 +80,7 @@ class frmMain ( wx.Frame ):
 		
 		self.fpcROM1 = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE|wx.FLP_USE_TEXTCTRL )
 		self.fpcROM1.Enable( False )
-		self.fpcROM1.SetMinSize( wx.Size( 310,-1 ) )
+		self.fpcROM1.SetMinSize( wx.Size( 300,-1 ) )
 		
 		fgsImages.Add( self.fpcROM1, 0, wx.ALL, 5 )
 		
@@ -92,7 +95,7 @@ class frmMain ( wx.Frame ):
 		
 		self.fpcROM2 = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE|wx.FLP_USE_TEXTCTRL )
 		self.fpcROM2.Enable( False )
-		self.fpcROM2.SetMinSize( wx.Size( 310,-1 ) )
+		self.fpcROM2.SetMinSize( wx.Size( 300,-1 ) )
 		
 		fgsImages.Add( self.fpcROM2, 0, wx.ALL, 5 )
 		
@@ -107,80 +110,71 @@ class frmMain ( wx.Frame ):
 		
 		self.fpcFDD = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE|wx.FLP_USE_TEXTCTRL )
 		self.fpcFDD.Enable( False )
-		self.fpcFDD.SetMinSize( wx.Size( 310,-1 ) )
+		self.fpcFDD.SetMinSize( wx.Size( 300,-1 ) )
 		
 		fgsImages.Add( self.fpcFDD, 0, wx.ALL, 5 )
 		
 		
-		bxsMain.Add( fgsImages, 1, wx.EXPAND, 5 )
+		bxsMain.Add( fgsImages, 1, wx.ALIGN_CENTER|wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL, 5 )
 		
-		bxsOptions = wx.BoxSizer( wx.VERTICAL )
-		
-		fgSizer3 = wx.FlexGridSizer( 0, 2, 0, 0 )
-		fgSizer3.SetFlexibleDirection( wx.BOTH )
-		fgSizer3.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+		fgSToggles = wx.FlexGridSizer( 0, 2, 0, 0 )
+		fgSToggles.SetFlexibleDirection( wx.BOTH )
+		fgSToggles.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 		
 		self.cbxChroot = wx.CheckBox( self, wx.ID_ANY, u"Chroot (Linux VMs Only)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer3.Add( self.cbxChroot, 0, wx.ALL, 5 )
+		fgSToggles.Add( self.cbxChroot, 0, wx.ALL, 5 )
 		
 		self.cbxMouse = wx.CheckBox( self, wx.ID_ANY, u"Use USB Mouse, not Tablet Device", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer3.Add( self.cbxMouse, 0, wx.ALL, 5 )
+		fgSToggles.Add( self.cbxMouse, 0, wx.ALL, 5 )
 		
 		self.cbxIDE = wx.CheckBox( self, wx.ID_ANY, u"Use IDE for disks, not VirtIO", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer3.Add( self.cbxIDE, 0, wx.ALL, 5 )
+		fgSToggles.Add( self.cbxIDE, 0, wx.ALL, 5 )
 		
 		self.cbxQXL = wx.CheckBox( self, wx.ID_ANY, u"QXL/SPICE instead of VNC", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer3.Add( self.cbxQXL, 0, wx.ALL, 5 )
+		fgSToggles.Add( self.cbxQXL, 0, wx.ALL, 5 )
 		
 		self.cbxSecVirtIO = wx.CheckBox( self, wx.ID_ANY, u"Use VirtIO for Sec HDD", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.cbxSecVirtIO.Enable( False )
 		
-		fgSizer3.Add( self.cbxSecVirtIO, 0, wx.ALL, 5 )
+		fgSToggles.Add( self.cbxSecVirtIO, 0, wx.ALL, 5 )
 		
 		
-		bxsOptions.Add( fgSizer3, 1, wx.EXPAND, 5 )
+		bxsMain.Add( fgSToggles, 1, wx.ALIGN_CENTER|wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL, 5 )
 		
-		fgSizer2 = wx.FlexGridSizer( 0, 2, 0, 0 )
-		fgSizer2.SetFlexibleDirection( wx.BOTH )
-		fgSizer2.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+		fgsNumbers = wx.FlexGridSizer( 0, 2, 0, 0 )
+		fgsNumbers.SetFlexibleDirection( wx.BOTH )
+		fgsNumbers.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 		
 		self.lblRAM = wx.StaticText( self, wx.ID_ANY, u"Memory Allocation for VM (in MiB):", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.lblRAM.Wrap( -1 )
-		fgSizer2.Add( self.lblRAM, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5 )
+		fgsNumbers.Add( self.lblRAM, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5 )
 		
-		self.spnRAM = wx.SpinCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.SP_ARROW_KEYS, 0, 99998, 512 )
-		self.spnRAM.SetMaxSize( wx.Size( 55,-1 ) )
-		
-		fgSizer2.Add( self.spnRAM, 0, wx.ALIGN_RIGHT|wx.ALL|wx.RIGHT, 5 )
+		self.spnRAM = wx.SpinCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 55,-1 ), wx.SP_ARROW_KEYS, 0, 99998, 512 )
+		fgsNumbers.Add( self.spnRAM, 0, wx.ALIGN_RIGHT|wx.ALL|wx.RIGHT, 5 )
 		
 		self.lblXPort = wx.StaticText( self, wx.ID_ANY, u"X11 listening port for remote viewer:", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.lblXPort.Wrap( -1 )
-		fgSizer2.Add( self.lblXPort, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5 )
+		fgsNumbers.Add( self.lblXPort, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5 )
 		
-		self.spnXPort = wx.SpinCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.SP_ARROW_KEYS, 0, 99, 0 )
-		self.spnXPort.SetMaxSize( wx.Size( 55,-1 ) )
-		
-		fgSizer2.Add( self.spnXPort, 0, wx.ALIGN_RIGHT|wx.ALL, 5 )
+		self.spnXPort = wx.SpinCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 55,-1 ), wx.SP_ARROW_KEYS, 0, 99, 50 )
+		fgsNumbers.Add( self.spnXPort, 0, wx.ALIGN_RIGHT|wx.ALL, 5 )
 		
 		
-		bxsOptions.Add( fgSizer2, 1, wx.ALIGN_CENTER, 5 )
+		bxsMain.Add( fgsNumbers, 1, wx.ALIGN_CENTER, 5 )
 		
-		bSizer17 = wx.BoxSizer( wx.HORIZONTAL )
+		bxsButtons = wx.BoxSizer( wx.HORIZONTAL )
 		
 		self.btnAbout = wx.Button( self, wx.ID_ANY, u"About", wx.DefaultPosition, wx.DefaultSize, 0 )
-		bSizer17.Add( self.btnAbout, 0, wx.ALL, 5 )
-		
-		self.btnExit = wx.Button( self, wx.ID_ANY, u"Exit", wx.DefaultPosition, wx.DefaultSize, 0 )
-		bSizer17.Add( self.btnExit, 0, wx.ALL, 5 )
+		bxsButtons.Add( self.btnAbout, 0, wx.ALL, 5 )
 		
 		self.btnLaunchVM = wx.Button( self, wx.ID_ANY, u"Launch VM", wx.DefaultPosition, wx.DefaultSize, 0 )
-		bSizer17.Add( self.btnLaunchVM, 0, wx.ALL, 5 )
+		bxsButtons.Add( self.btnLaunchVM, 0, wx.ALL, 5 )
+		
+		self.btnExit = wx.Button( self, wx.ID_ANY, u"Exit", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bxsButtons.Add( self.btnExit, 0, wx.ALL, 5 )
 		
 		
-		bxsOptions.Add( bSizer17, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL, 5 )
-		
-		
-		bxsMain.Add( bxsOptions, 1, wx.EXPAND, 5 )
+		bxsMain.Add( bxsButtons, 1, wx.ALIGN_CENTER, 5 )
 		
 		
 		self.SetSizer( bxsMain )
@@ -217,8 +211,8 @@ class frmMain ( wx.Frame ):
 		self.spnRAM.Bind( wx.EVT_KILL_FOCUS, self.runSaveConfig )
 		self.spnXPort.Bind( wx.EVT_KILL_FOCUS, self.runSaveConfig )
 		self.btnAbout.Bind( wx.EVT_BUTTON, self.runAboutDialog )
-		self.btnExit.Bind( wx.EVT_BUTTON, self.runExitApp )
 		self.btnLaunchVM.Bind( wx.EVT_BUTTON, self.runLaunchVM )
+		self.btnExit.Bind( wx.EVT_BUTTON, self.runExitApp )
 	
 	def __del__( self ):
 		pass
@@ -267,10 +261,10 @@ class frmMain ( wx.Frame ):
 	def runAboutDialog( self, event ):
 		event.Skip()
 	
-	def runExitApp( self, event ):
+	def runLaunchVM( self, event ):
 		event.Skip()
 	
-	def runLaunchVM( self, event ):
+	def runExitApp( self, event ):
 		event.Skip()
 	
 
