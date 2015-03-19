@@ -32,7 +32,7 @@ Force Secondary VirtIO (-v)
 
 Use QXL/SPICE (-q)
 
-> Through my personal testing, I found VNC to be a better solution that the combination of QXL and SPICE thanks to the recent addition of bochsdrm to the Linux kernel.
+> Through my personal testing, I found VNC to be a better solution that the combination of QXL and SPICE thanks to the recent addition of bochsdrm to the Linux kernel.  Others may have had better luck or have a larger collection of VMs that might be a hassle to move, so the option to use QXL and SPICE has stayed.
 
 Memory Allocation (-m)
 
