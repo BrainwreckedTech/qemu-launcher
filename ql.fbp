@@ -47,7 +47,7 @@
             <property name="size">400,435</property>
             <property name="style">wxDEFAULT_FRAME_STYLE</property>
             <property name="subclass"></property>
-            <property name="title">QEMU VM Launcher</property>
+            <property name="title">QEMU Graphical Launcher</property>
             <property name="tooltip"></property>
             <property name="window_extra_style"></property>
             <property name="window_name"></property>
