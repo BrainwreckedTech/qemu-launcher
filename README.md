@@ -3,6 +3,27 @@ QEMU Launcher
 
 QEMU Launcher is an application designed for simple QEMU virtual machine management.  It is licensed under the GPLv3.  It not available under a prior or future version of the GPL.
 
+Prerequisites
+-------------
+
+Command Line Operation
+
+* qemu
+* spice (qemu may pull this in)
+* tigervnc (for vncviewer)
+* arch-install-scripts (for arch-chroot)
+* parted (for disk partition listings)
+
+GUI Operation
+
+* wxpython
+* wxgtk (wxpython may pull this in)
+* python2 (wxpython may pull this in)
+
+GUI Development
+
+* wxFormBuilder
+
 Operation
 ---------
 
