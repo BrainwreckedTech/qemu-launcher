@@ -19,7 +19,8 @@ main options:
       -u             Use USB mouse instead of tablet device
       -q             Use QXL/SPICE instead of VNC
       -w             Don't launch SPICE/vncviewer directly
-      -x             Specifiy X Display number
+      -x             Specify X Display number
+      -c             Specify number of cores (default = [cores+1]/2)
       
 Image options:
 
@@ -58,10 +59,11 @@ IFACE=virtio
 VLNCH=true
 CORES=$(expr $(expr $(grep -c ^processor /proc/cpuinfo) + 1) / 2)
 
-while getopts "a:b:cd:fhil:m:p:rs:uv:wx:" opt; do
+while getopts "a:b:c:d:fhil:m:p:rs:uv:wx:" opt; do
   case "$opt" in
     a) FDIMG="${OPTARG}" ;;
     b) BTISO="${OPTARG}" ;;
+    c) CORES="${OPTARG}" ;;
     d) DRISO="${OPTARG}" ;;
     f) FRMTP=true        ;;
     h) show_help; exit 0 ;;
