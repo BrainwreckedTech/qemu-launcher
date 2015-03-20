@@ -121,7 +121,7 @@ class frmMain ( wx.Frame ):
 		fgSToggles.SetFlexibleDirection( wx.BOTH )
 		fgSToggles.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 		
-		self.cbxChroot = wx.CheckBox( self, wx.ID_ANY, u"Chroot (Linux VMs Only)", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.cbxChroot = wx.CheckBox( self, wx.ID_ANY, u"Chroot GNU/Linux VM", wx.DefaultPosition, wx.DefaultSize, 0 )
 		fgSToggles.Add( self.cbxChroot, 0, wx.ALL, 5 )
 		
 		self.cbxMouse = wx.CheckBox( self, wx.ID_ANY, u"Use USB Mouse, not Tablet Device", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -130,7 +130,7 @@ class frmMain ( wx.Frame ):
 		self.cbxIDE = wx.CheckBox( self, wx.ID_ANY, u"Use IDE for disks, not VirtIO", wx.DefaultPosition, wx.DefaultSize, 0 )
 		fgSToggles.Add( self.cbxIDE, 0, wx.ALL, 5 )
 		
-		self.cbxQXL = wx.CheckBox( self, wx.ID_ANY, u"QXL/SPICE instead of VNC", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.cbxQXL = wx.CheckBox( self, wx.ID_ANY, u"Use QXL/SPICE instead of VNC", wx.DefaultPosition, wx.DefaultSize, 0 )
 		fgSToggles.Add( self.cbxQXL, 0, wx.ALL, 5 )
 		
 		self.cbxSecVirtIO = wx.CheckBox( self, wx.ID_ANY, u"Use VirtIO for Sec HDD", wx.DefaultPosition, wx.DefaultSize, 0 )
