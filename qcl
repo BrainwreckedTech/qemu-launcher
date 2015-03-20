@@ -29,7 +29,7 @@ Image options:
       
 Utilties:
 
-      -c              Chroot into partition (diagnostics, repairs, etc.)
+      -r              Chroot into partition (diagnostics, repairs, etc.)
       -f              Format partition (MBR partition scheme)
       -h              This help text.
       -l </dev/drive> List partitions on drive that have no known format.
@@ -62,7 +62,6 @@ while getopts "a:b:cd:fhil:m:p:rs:uv:wx:" opt; do
   case "$opt" in
     a) FDIMG="${OPTARG}" ;;
     b) BTISO="${OPTARG}" ;;
-    c) CROOT=true        ;;
     d) DRISO="${OPTARG}" ;;
     f) FRMTP=true        ;;
     h) show_help; exit 0 ;;
@@ -71,6 +70,7 @@ while getopts "a:b:cd:fhil:m:p:rs:uv:wx:" opt; do
     m) RAMSZ="${OPTARG}" ;;
     p) PRIDR="${OPTARG}" ;;
     q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
+    r) CROOT=true        ;;
     s) SCNDR="${OPTARG}" ;;
     u) MOUSE="mouse   "  ;;
     v) VIODR="${OPTARG}" ;;

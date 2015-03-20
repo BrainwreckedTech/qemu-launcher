@@ -227,7 +227,7 @@ class MyClass(qglgui.frmMain):
 
 		if bolErrorFound == False:
 			if self.cbxChroot.IsEnabled() == True and self.cbxChroot.GetValue() == True:
-				strCommandLine += ' -c'
+				strCommandLine += ' -r'
 			else:
 				if self.cbxMouse.GetValue() == True:
 					strCommandLine += ' -u'
