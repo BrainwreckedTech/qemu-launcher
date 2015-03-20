@@ -14,7 +14,11 @@ Disk Images (-p -s -b -d -a)
 
 > The user can specify up to five disk images of a pre-determined type.  Primary devices will boot while secondary devices will not.  If both Primary HDD and ROM are specified, QEMU Launcher will boot from the ROM media.
 
-Chroot (-c)
+Cores (-c, CLI Only for now)
+
+> The user can specify how many cores to give to the VM.  Default is [cores+1]/2
+
+Chroot (-r)
 
 > For Linux virtual machine, QEMU Launcher can set up a chroot for diagnosis and repair.  In the GUI, this will necessitate a terminal be used.
 
