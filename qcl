@@ -96,9 +96,20 @@ if ${CROOT}; then
   mount -v ${LOOPD}p1 /mnt/crl
   mkdir -p /mnt/crl/${NFSMT}
   mount -v --bind ${NFSMT} /mnt/crl/${NFSMT}
-  arch-chroot /mnt/crl
-  umount /mnt/crl/${NFSMT}
-  umount /mnt/crl
+  if which arch-chroot 2> /dev/null; then
+    arch-chroot /mnt/crl
+  else
+    mount -t proc proc /mnt/crl/proc
+    mount --rbind /sys /mnt/crl/sys
+    mount --rbind /dev /mnt/crl/dev
+    mount --rbind /run /mnt/crl/run
+    chroot /mnt/crl /bin/sh
+    for bndmnt in proc sys dev run; do
+      eval umount -l /mnt/crl/${bndmnt}
+    done
+  fi
+  umount -l /mnt/crl/${NFSMT}
+  umount -l /mnt/crl
   losetup -d ${LOOPD}
   exit 0
 fi
