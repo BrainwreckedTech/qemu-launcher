@@ -11,7 +11,6 @@ Command Line Operation
 * qemu
 * spice (qemu may pull this in)
 * tigervnc (for vncviewer)
-* arch-install-scripts (for arch-chroot)
 * parted (for disk partition listings)
 
 GUI Operation
@@ -23,6 +22,14 @@ GUI Operation
 GUI Development
 
 * wxFormBuilder
+
+Optional Dependencies
+---------------------
+
+arch-install-scripts (arch-chroot)
+
+> If this script is not present, the script will do some base mounting itself.  However, arch-chroot is more comprehensive and recommended.
+
 
 Operation
 ---------
