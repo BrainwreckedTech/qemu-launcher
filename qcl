@@ -31,8 +31,15 @@ Image options:
 Utilties:
 
       -r              Chroot into partition (diagnostics, repairs, etc.)
-      -f              Format disk image specified by -p
+      -f <format>     Format disk image specified by -p
                         Uses MBR partition scheme
+                        <format> is [align][MiB] (example: g4096)
+                          align is one of n,m,g, or o
+                            n = none     partition starts at sector 1
+                            m = minimal  partition starts at sector 8
+                            g = grub     partition starts at sector 64
+                            o = optimal  partition starts at sector 2048
+                          MiB is the desired size if -p is not a block device
       -h              This help text.
       -l </dev/drive> List partitions on drive that have no known format.
 
@@ -60,13 +67,13 @@ IFACE=virtio
 VLNCH=true
 CORES=$(expr $(expr $(grep -c ^processor /proc/cpuinfo) + 1) / 2)
 
-while getopts "a:b:c:d:fhil:m:p:rs:uv:wx:" opt; do
+while getopts "a:b:c:d:f:hil:m:p:rs:uv:wx:" opt; do
   case "$opt" in
     a) FDIMG="${OPTARG}" ;;
     b) BTISO="${OPTARG}" ;;
     c) CORES="${OPTARG}" ;;
     d) DRISO="${OPTARG}" ;;
-    f) FRMTP=true        ;;
+    f) FRMTO="${OPTARG}" ; FRMTP=true ;;
     h) show_help; exit 0 ;;
     i) IFACE=ide         ;;
     l) LSPTD="${OPTARG}" ;;
@@ -87,8 +94,6 @@ shift $((OPTIND-1))
 
 [ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
-
-
 
 if ${CROOT}; then
   LOOPD=$(sudo losetup -fP --show ${PRIDR})
@@ -129,20 +134,38 @@ if [ -n "${LSPTD}" ]; then
 fi
 
 if ${FRMTP}; then
-  set -x
-    type dcfldd &> /dev/null && DDBIN='dcfldd' || DDBIN='dd'
+  type dcfldd &> /dev/null && DDBIN='dcfldd' || DDBIN='dd'
+  if [ -b ${PRIDR} ]; then
     ${DDBIN} if=/dev/zero of=${PRIDR} bs=1M
-    echo -ne "i\n" | sudo parted ${PRIDR} mklabel msdos
-    echo -ne "i\ni\n" | sudo parted ${PRIDR} mkpart primary ext4 1MiB -- -1s
-    parted ${PRIDR:0:8} name ${PRIDR:8}
-    LOOPD="$(sudo losetup -fP --show ${PRIDR})"
-    mkfs -t ext4 ${LOOPD}p1
-    mkdir -p /mnt/crl
-    mount ${LOOPD}p1 /mnt/crl
-    ${DDBIN} if=/dev/zero of=/mnt/crl/swapfile bs=1M count=${RAMSZ}
-    umount /mnt/crl
-    losetp -d ${LOOPD}
-  set +x
+  else
+    if [ "${PRIDR:0:4}" == "/dev" ]; then
+      echo "Block device ${FRMTP} does not exist.  Not creating."
+    else
+      echo "Writing disk image..."
+      ${DDBIN} if=/dev/zero of=${PRIDR} bs=1M count=${FRMTO:1}
+    fi
+  fi
+  echo "Creating partition table..."
+  echo -ne "i\n" | sudo parted ${PRIDR} mklabel msdos
+  case ${FRMTO:0:1} in
+    n) PSTRT=1s ;;
+    m) PSTRT=8s ;;
+    g) PSTRT=64s ;;
+    o) PSTRT=1MiB ;;
+  esac
+  echo -ne "i\ni\n" | sudo parted -a none ${PRIDR} mkpart primary ext4 ${PSTRT} -- -1s
+  [ -b ${PRIDR} ] && parted ${PRIDR:0:8} name ${PRIDR:8}
+  LOOPD="$(sudo losetup -fP --show ${PRIDR})"
+  echo "Creating file system..."
+  mkfs -q -t ext4 ${LOOPD}p1
+  mkdir -p /mnt/crl
+  mount ${LOOPD}p1 /mnt/crl
+  echo "Creating swap file..."
+  ${DDBIN} if=/dev/zero of=/mnt/crl/swapfile bs=1M count=${RAMSZ}
+  echo "Cleaning up..."
+  umount /mnt/crl
+  losetup -d ${LOOPD}
+  exit 0
 fi
 
 # This was supposed to be a tweak that depended on whether the image
