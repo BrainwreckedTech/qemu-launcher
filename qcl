@@ -10,28 +10,29 @@ usage: ${0} [- options...]
 
 main options:
 
-      -i             Use IDE disks instead of default VIRTIO
-      -m <MiB size>  Specify RAM available to VM  
-      -p </dev/part> Partition that serves as the primary bootable drive
-      -s </dev/part> Partition that serves as the secondary drive
-      -v </dev/part> Partition that serves as the secondary drive, VIRTIO forced
-                       (Used when you can't use VirtIO to install Windows)
-      -u             Use USB mouse instead of tablet device
-      -q             Use QXL/SPICE instead of VNC
-      -w             Don't launch SPICE/vncviewer directly
-      -x             Specify X Display number
-      -c             Specify number of cores (default = [cores+1]/2)
+      -i                Use IDE disks instead of default VIRTIO
+      -m <MiB size>     Specify RAM available to VM  
+      -p </path/to/img> Primary drive disk image (bootable drive)
+      -s </path/to/img> Secondary drive disk image (no boot)
+      -v </path/to/img> Secondary drive disk image, VIRTIO forced
+                          (Used when you can't use VirtIO to install Windows)
+      -u                Use USB mouse instead of tablet device
+      -q                Use QXL/SPICE instead of VNC
+      -w                Don't launch SPICE/vncviewer directly
+      -x                Specify X11 listening port number
+      -c                Specify number of cores (default = [cores+1]/2)
       
 Image options:
 
-      -a </path/to/img> Floppy disk
+      -a </path/to/img> Floppy drive disk image
       -b </path/to/iso> Bootable ISO (will boot this instead of primary drive)
-      -d </path/to/iso> Seconday ISO (for drivers, etc.)
+      -d </path/to/iso> Seconday ISO (no boot -- for drivers, etc.)
       
 Utilties:
 
       -r              Chroot into partition (diagnostics, repairs, etc.)
-      -f              Format partition (MBR partition scheme)
+      -f              Format disk image specified by -p
+                        Uses MBR partition scheme
       -h              This help text.
       -l </dev/drive> List partitions on drive that have no known format.
 
