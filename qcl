@@ -97,9 +97,18 @@ shift $((OPTIND-1))
 
 if ${CROOT}; then
   LOOPD=$(sudo losetup -fP --show ${PRIDR})
-  fsck -faMT ${LOOPD}p1
+  partprobe # makes sure the kernel gets partition info from losetup
+  PTLST="$(lsblk -lno NAME,FSTYPE | grep ${LOOPD:5} | grep 'btrfs\|ext\|jfs\|reiser\|xfs' | cut -d\  -f1 | sed ':a;N;$!ba;s/\n/ /g')"
   mkdir -p /mnt/crl
-  mount -v ${LOOPD}p1 /mnt/crl
+  for CURPT in ${PTLST}; do
+    fsck -faMT /dev/${CURPT}
+    mount -v /dev/${CURPT} /mnt/crl
+    if [ -f /mnt/crl/etc/fstab ]; then
+      break
+    else
+      umount /mnt/crl
+    fi
+  done
   mkdir -p /mnt/crl/${NFSMT}
   mount -v --bind ${NFSMT} /mnt/crl/${NFSMT}
   if which arch-chroot 2> /dev/null; then
