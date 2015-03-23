@@ -77,14 +77,14 @@ while getopts "a:b:c:d:f:hikl:m:p:rs:uv:wx:" opt; do
     f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
     h) show_help; exit 0   ;;
     i) IFACE=ide           ;;
-	k) W2KHK="-win2k-hack" ;;
+    k) W2KHK="-win2k-hack" ;;
     l) LSPTD="${OPTARG}"   ;;
     m) RAMSZ="${OPTARG}"   ;;
     p) PRIDR="${OPTARG}"   ;;
     q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
     r) CROOT=true          ;;
     s) SCNDR="${OPTARG}"   ;;
-    u) MOUSE="mouse   "    ;;
+    u) MOUSE="mouse"       ;;
     v) VIODR="${OPTARG}"   ;;
     w) VLNCH=false         ;;
     x) XDISP="${OPTARG}"   ; VIDEO="std -nographic -vnc :${XDISP}" ;;
