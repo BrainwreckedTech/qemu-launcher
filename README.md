@@ -66,6 +66,10 @@ Use QXL/SPICE (-q)
 
 > Through my personal testing, I found VNC to be a better solution that the combination of QXL and SPICE thanks to the recent addition of bochs_drm to the Linux kernel.  Others may have had better luck or have a larger collection of VMs that might be a hassle to move, so the option to use QXL and SPICE has stayed.
 
+Win2K Hack (-k, CLI-only for now)
+
+> Enable the QEMU Win2K Hack.  This solves the disk full bug.  IDE transfers are slowed down.  Once Windows 2000 is installed, this option is no longer needed.
+
 Memory Allocation (-m)
 
 > Self-explanatory.

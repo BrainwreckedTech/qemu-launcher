@@ -16,6 +16,7 @@ main options:
       -s </path/to/img> Secondary drive disk image (no boot)
       -v </path/to/img> Secondary drive disk image, VIRTIO forced
                           (Used when you can't use VirtIO to install Windows)
+      -k                Enable Win2K hack (solves disk full bug, slows IDE)
       -u                Use USB mouse instead of tablet device
       -q                Use QXL/SPICE instead of VNC
       -w                Don't launch SPICE/vncviewer directly
@@ -67,25 +68,26 @@ IFACE=virtio
 VLNCH=true
 CORES=$(expr $(expr $(grep -c ^processor /proc/cpuinfo) + 1) / 2)
 
-while getopts "a:b:c:d:f:hil:m:p:rs:uv:wx:" opt; do
+while getopts "a:b:c:d:f:hikl:m:p:rs:uv:wx:" opt; do
   case "$opt" in
-    a) FDIMG="${OPTARG}" ;;
-    b) BTISO="${OPTARG}" ;;
-    c) CORES="${OPTARG}" ;;
-    d) DRISO="${OPTARG}" ;;
-    f) FRMTO="${OPTARG}" ; FRMTP=true ;;
-    h) show_help; exit 0 ;;
-    i) IFACE=ide         ;;
-    l) LSPTD="${OPTARG}" ;;
-    m) RAMSZ="${OPTARG}" ;;
-    p) PRIDR="${OPTARG}" ;;
+    a) FDIMG="${OPTARG}"   ;;
+    b) BTISO="${OPTARG}"   ;;
+    c) CORES="${OPTARG}"   ;;
+    d) DRISO="${OPTARG}"   ;;
+    f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
+    h) show_help; exit 0   ;;
+    i) IFACE=ide           ;;
+	k) W2KHK="-win2k-hack" ;;
+    l) LSPTD="${OPTARG}"   ;;
+    m) RAMSZ="${OPTARG}"   ;;
+    p) PRIDR="${OPTARG}"   ;;
     q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
-    r) CROOT=true        ;;
-    s) SCNDR="${OPTARG}" ;;
-    u) MOUSE="mouse   "  ;;
-    v) VIODR="${OPTARG}" ;;
-    w) VLNCH=false       ;;
-    x) XDISP="${OPTARG}" ; VIDEO="std -nographic -vnc :${XDISP}" ;;
+    r) CROOT=true          ;;
+    s) SCNDR="${OPTARG}"   ;;
+    u) MOUSE="mouse   "    ;;
+    v) VIODR="${OPTARG}"   ;;
+    w) VLNCH=false         ;;
+    x) XDISP="${OPTARG}"   ; VIDEO="std -nographic -vnc :${XDISP}" ;;
     '?') show_help >&2 && exit 1;;
   esac
 done
@@ -215,7 +217,7 @@ echo '### USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS'
 echo '### USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM'
 echo '### USE quit TO TELL QEMU TO STOP IMMEDIATELY'
 echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
-eval "set -x; qemu-system-x86_64 -runas qemu \
+eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} \
   -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
   -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
   -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}"
