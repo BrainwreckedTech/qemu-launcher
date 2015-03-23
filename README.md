@@ -66,6 +66,10 @@ Use QXL/SPICE (-q)
 
 > Through my personal testing, I found VNC to be a better solution that the combination of QXL and SPICE thanks to the recent addition of bochs_drm to the Linux kernel.  Others may have had better luck or have a larger collection of VMs that might be a hassle to move, so the option to use QXL and SPICE has stayed.
 
+Don't launch viewer (-w, CLI-only for now)
+
+> Don't launch SPICE/VNC client.
+
 Win2K Hack (-k, CLI-only for now)
 
 > Enable the QEMU Win2K Hack.  This solves the disk full bug.  IDE transfers are slowed down.  Once Windows 2000 is installed, this option is no longer needed.
@@ -77,6 +81,10 @@ Memory Allocation (-m)
 X11 Listening Port (-x)
 
 > When using VNC, this will be the port specified in the vncviewer command.  When using QXL, this number is added to 6000 to get the SPICE listening port number.
+
+Format (-f [format], CLI-only for now)
+
+> Create & format the disk image specified as the Primary HDD.  For now, this always uses the MBR partition scheme and creates a single partition only.  The [format] is [align][MiB], where [align] is one of (n)one, (m)inimal, (g)rub, or (o)ptimal, and [MiB] is the desired size if the Primary HDD is not a block device.  Example: g4096 will create a 4GiB disk image with one partition that starts at sector 64.
 
 
 Files
