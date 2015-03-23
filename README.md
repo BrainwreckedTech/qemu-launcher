@@ -48,7 +48,7 @@ Cores (-c, CLI Only for now)
 
 Chroot (-r)
 
-> For GNU/Linux virtual machine, QEMU Launcher can set up a chroot for diagnosis and repair.  In the GUI, this will necessitate a terminal be used.
+> For GNU/Linux virtual machines, QEMU Launcher can set up a chroot for diagnosis and repair.  In the GUI, this will necessitate a terminal be used.  QEMU Launcher will first seek out partitions created by losetup for known Linux filesystems (btrfs, ext, jfs, resiser, xfs).  It will then test to see if it can find /etc/fstab.  When /etc/fstab is found, QEMU Launcher will chroot into that partition.
 
 USB Mouse (-u)
 
