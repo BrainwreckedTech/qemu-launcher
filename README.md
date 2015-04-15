@@ -38,6 +38,10 @@ Terminal (GUI Only)
 
 > Allows the user to specify if they would like to use a terminal and, if so, which one.  Use of this option is highly recommended as it gives access to the QEMU console.  A terminal must be used if the user would like to chroot into a disk image that holds a GNU/Linux OS.
 
+Terminal (-t, CLI Only)
+
+> Allows the user to specify a terminal emulator to execute QEMU inside of.  The terminal emulator will be forked to the background.  A 2-second pause is implemented before QCL is allowed to exit.  This option is useful if you are not using QGL and want to use QCL in conjunction with something else.
+
 Disk Images (-p -s -b -d -a)
 
 > The user can specify up to five disk images of a pre-determined type.  Primary devices will boot while secondary devices will not.  If both Primary HDD and ROM are specified, QEMU Launcher will boot from the ROM media.

@@ -22,6 +22,7 @@ main options:
       -w                Don't launch SPICE/vncviewer directly
       -x                Specify X11 listening port number
       -c                Specify number of cores (default = [cores+1]/2)
+      -t <term-bin>     Launch QEMU in <term-bin> in background
       
 Image options:
 
@@ -68,7 +69,7 @@ IFACE=virtio
 VLNCH=true
 CORES=$(expr $(expr $(grep -c ^processor /proc/cpuinfo) + 1) / 2)
 
-while getopts "a:b:c:d:f:hikl:m:p:rs:uv:wx:" opt; do
+while getopts "a:b:c:d:f:hikl:m:p:rs:t:uv:wx:" opt; do
   case "$opt" in
     a) FDIMG="${OPTARG}"   ;;
     b) BTISO="${OPTARG}"   ;;
@@ -84,6 +85,7 @@ while getopts "a:b:c:d:f:hikl:m:p:rs:uv:wx:" opt; do
     q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
     r) CROOT=true          ;;
     s) SCNDR="${OPTARG}"   ;;
+    t) TRMNL="${OPTARG}"   ;;
     u) MOUSE="mouse"       ;;
     v) VIODR="${OPTARG}"   ;;
     w) VLNCH=false         ;;
@@ -213,11 +215,19 @@ if ${VLNCH}; then
 else
   echo "VIDEO MODE: ${VIDEO}"
 fi
-echo '### USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS'
-echo '### USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM'
-echo '### USE quit TO TELL QEMU TO STOP IMMEDIATELY'
-echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
-eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} \
-  -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
-  -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
-  -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}"
+#echo '### USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS'
+#echo '### USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM'
+#echo '### USE quit TO TELL QEMU TO STOP IMMEDIATELY'
+#echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
+if [ -n "${TRMNL}" ]; then
+  eval "${TRMNL} -e 'qemu-system-x86_64 -runas qemu ${W2KHK} \
+    -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
+    -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
+    -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}' 2> /dev/null" &
+  sleep 2
+else
+  eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} \
+    -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
+    -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
+    -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}; set +x"
+fi
