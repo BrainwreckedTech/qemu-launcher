@@ -181,20 +181,10 @@ if ${FRMTP}; then
   exit 0
 fi
 
-# This was supposed to be a tweak that depended on whether the image
-# was a file or a device, but it was found that cache=none was faster
-# in both cases.
-#
-#[ -n "${PRIDR}" ] && { [ -f "${PRIDR}" ] && PCACH=writeback || PCACH=none; }
-#[ -n "${SECDR}" ] && { [ -f "${SECDR}" ] && SCACH=writeback || SCACH=none; }
-#[ -n "${VIODR}" ] && { [ -f "${VIODR}" ] && VCACH=writeback || VCACH=none; }
-
-PCACH=none; SCACH=none; VCACH=none
-
-SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=${PCACH},if=${IFACE}" && BTPRM="-boot c"
+SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
 [ -n "${FDIMG}" ] && SDRVS+=" -drive file='${FDIMG}',index=0,if=floppy"
-[ -n "${SCNDR}" ] && SDRVS+=" -drive file='${SCNDR}',index=1,media=disk,cache=${SCACH},if=${IFACE}"
-[ -n "${VIODR}" ] && SDRVS+=" -drive file='${VIODR}',index=1,media=disk,cache=${VCACH},if=virtio"
+[ -n "${SCNDR}" ] && SDRVS+=" -drive file='${SCNDR}',index=1,media=disk,cache=none,if=${IFACE}"
+[ -n "${VIODR}" ] && SDRVS+=" -drive file='${VIODR}',index=1,media=disk,cache=none,if=virtio"
 [ -n "${BTISO}" ] && SDRVS+=" -drive file='${BTISO}',index=1,media=cdrom" && BTPRM="-boot d"
 [ -n "${DRISO}" ] && SDRVS+=" -drive file='${DRISO}',index=2,media=cdrom"
 
