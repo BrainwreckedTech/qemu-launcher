@@ -221,13 +221,13 @@ fi
 #echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
 if [ -n "${TRMNL}" ]; then
   eval "${TRMNL} -e 'qemu-system-x86_64 -runas qemu ${W2KHK} \
-    -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
+    -enable-kvm -cpu host -machine type=pc,accel=kvm \
     -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
     -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}' 2> /dev/null" &
   sleep 2
 else
   eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} \
-    -enable-kvm -cpu host -machine type=pc,accel=kvm -balloon virtio \
+    -enable-kvm -cpu host -machine type=pc,accel=kvm \
     -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
     -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}; set +x"
 fi
