@@ -188,11 +188,6 @@ SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPR
 [ -n "${BTISO}" ] && SDRVS+=" -drive file='${BTISO}',index=1,media=cdrom" && BTPRM="-boot d"
 [ -n "${DRISO}" ] && SDRVS+=" -drive file='${DRISO}',index=2,media=cdrom"
 
-#echo "####################### DRIVE PARAMETERS #########################"
-#echo "$SDRVS" | sed 's/ -/\n-/g'
-#echo "######################## BOOT PARAMETERS #########################"
-#echo "$BTPRM"
-
 chown qemu ${PRIDR}
 
 if ${VLNCH}; then
