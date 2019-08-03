@@ -200,12 +200,19 @@ if ${VLNCH}; then
 else
   echo "VIDEO MODE: ${VIDEO}"
 fi
-#echo '### USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS'
-#echo '### USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM'
-#echo '### USE quit TO TELL QEMU TO STOP IMMEDIATELY'
-#echo '### PRESS CTRL+C TO FORCE-QUIT QEMU'
+
+HTEXT='
+>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
+>>> USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM
+>>> USE quit TO TELL QEMU TO STOP IMMEDIATELY
+>>> PRESS CTRL+C TO FORCE-QUIT QEMU
+'
+
+[ -t 1 ] && echo "${HTEXT}"
+
 if [ -n "${TRMNL}" ]; then
-  eval "${TRMNL} -e 'qemu-system-x86_64 -runas qemu ${W2KHK} \
+  eval "${TRMNL} -e 'echo \"${HTEXT}\"; \
+    qemu-system-x86_64 -runas qemu ${W2KHK} \
     -enable-kvm -cpu host -machine type=pc,accel=kvm \
     -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
     -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}' 2> /dev/null" &
