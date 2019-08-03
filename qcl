@@ -11,7 +11,7 @@ usage: ${0} [- options...]
 main options:
 
       -i                Use IDE disks instead of default VIRTIO
-      -m <MiB size>     Specify RAM available to VM  
+      -m <MiB size>     Specify RAM available to VM
       -p </path/to/img> Primary drive disk image (bootable drive)
       -s </path/to/img> Secondary drive disk image (no boot)
       -v </path/to/img> Secondary drive disk image, VIRTIO forced
@@ -23,13 +23,13 @@ main options:
       -x                Specify X11 listening port number
       -c                Specify number of cores (default = [cores+1]/2)
       -t <term-bin>     Launch QEMU in <term-bin> in background
-      
+
 Image options:
 
       -a </path/to/img> Floppy drive disk image
       -b </path/to/iso> Bootable ISO (will boot this instead of primary drive)
       -d </path/to/iso> Seconday ISO (no boot -- for drivers, etc.)
-      
+
 Utilties:
 
       -r              Chroot into partition (diagnostics, repairs, etc.)
