@@ -17,6 +17,7 @@ main options:
       -v </path/to/img> Secondary drive disk image, VIRTIO forced
                           (Used when you can't use VirtIO to install Windows)
       -k                Enable Win2K hack (solves disk full bug, slows IDE)
+      -n <port:port>    Forward host's <port> to guest's <port>
       -u                Use USB mouse instead of tablet device
       -q                Use QXL/SPICE instead of VNC
       -w                Don't launch SPICE/vncviewer directly
@@ -69,8 +70,8 @@ IFACE=virtio
 VLNCH=true
 CORES=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
 
-while getopts "a:b:c:d:f:hikl:m:p:qrs:t:uv:wx:" opt; do
-  case "$opt" in
+while getopts "a:b:c:d:f:hikl:m:n:p:qrs:t:uv:wx:" opt; do
+  case "${opt}" in
     a) FDIMG="${OPTARG}"   ;;
     b) BTISO="${OPTARG}"   ;;
     c) CORES="${OPTARG}"   ;;
@@ -81,6 +82,7 @@ while getopts "a:b:c:d:f:hikl:m:p:qrs:t:uv:wx:" opt; do
     k) W2KHK="-win2k-hack" ;;
     l) LSPTD="${OPTARG}"   ;;
     m) RAMSZ="${OPTARG}"   ;;
+    n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
     p) PRIDR="${OPTARG}"   ;;
     q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
     r) CROOT=true          ;;
@@ -182,11 +184,17 @@ if ${FRMTP}; then
 fi
 
 SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
+[ -b "${PRIDR}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${FDIMG}" ] && SDRVS="${SDRVS} -drive file='${FDIMG}',index=0,if=floppy"
+[ -b "${FDIMG}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${SCNDR}" ] && SDRVS="${SDRVS} -drive file='${SCNDR}',index=1,media=disk,cache=none,if=${IFACE}"
+[ -b "${SCNDR}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${VIODR}" ] && SDRVS="${SDRVS} -drive file='${VIODR}',index=1,media=disk,cache=none,if=virtio"
+[ -b "${VIODR}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${BTISO}" ] && SDRVS="${SDRVS} -drive file='${BTISO}',index=1,media=cdrom" && BTPRM="-boot d"
+[ -b "${BTISO}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${DRISO}" ] && SDRVS="${SDRVS} -drive file='${DRISO}',index=2,media=cdrom"
+[ -b "${DRISO}" ] && SDRVS="${SDRVS},format=raw"
 
 chown qemu "${PRIDR}"
 
@@ -212,14 +220,16 @@ HTEXT='
 
 if [ -n "${TRMNL}" ]; then
   eval "${TRMNL} -e 'echo \"${HTEXT}\"; \
-    qemu-system-x86_64 -runas qemu ${W2KHK} \
-    -enable-kvm -cpu host -machine type=pc,accel=kvm \
-    -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
-    -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}' 2> /dev/null" &
+    qemu-system-x86_64 -runas qemu ${W2KHK} -m $RAMSZ \
+    -enable-kvm -cpu host -machine type=pc,accel=kvm -smp cores=${CORES} \
+    -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
+    -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
+     ${SDRVS} ${BTPRM}' 2> /dev/null" &
   sleep 2
 else
-  eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} \
-    -enable-kvm -cpu host -machine type=pc,accel=kvm \
-    -smp cores=${CORES} -parallel none -serial none -usbdevice ${MOUSE} \
-    -m $RAMSZ -vga $VIDEO -net nic,model=virtio -net user ${SDRVS} ${BTPRM}; set +x"
+  eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} -m $RAMSZ\
+    -enable-kvm -cpu host -machine type=pc,accel=kvm -smp cores=${CORES} \
+    -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
+    -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
+     ${SDRVS} ${BTPRM}; set +x"
 fi
