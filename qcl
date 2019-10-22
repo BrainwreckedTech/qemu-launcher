@@ -149,15 +149,14 @@ if [ -n "${LSPTD}" ]; then
 fi
 
 if ${FRMTP}; then
-  type dcfldd > /dev/null 2>&1 && DDBIN='dcfldd' || DDBIN='dd'
   if [ -b "${PRIDR}" ]; then
-    ${DDBIN} if=/dev/zero of="${PRIDR}" bs=1M
+    dd if=/dev/zero of="${PRIDR}" bs=1M status=progress
   else
     if [ "$(echo "${PRIDR}" | cut -b 1-4)" = "/dev" ]; then
       echo "Block device ${FRMTP} does not exist.  Not creating."
     else
       echo "Writing disk image..."
-      ${DDBIN} if=/dev/zero of="${PRIDR}" bs=1M count="$(echo "${FRMTO}" | cut -b 2-)"
+      dd if=/dev/zero of="${PRIDR}" bs=1M count="$(echo "${FRMTO}" | cut -b 2-)" status=progess
     fi
   fi
   echo "Creating partition table..."
@@ -176,7 +175,7 @@ if ${FRMTP}; then
   mkdir -p /mnt/crl
   mount "${LOOPD}p1" /mnt/crl
   echo "Creating swap file..."
-  ${DDBIN} if=/dev/zero of=/mnt/crl/swapfile bs=1M count="${RAMSZ}"
+  dd if=/dev/zero of=/mnt/crl/swapfile bs=1M count="${RAMSZ}" status=progress
   echo "Cleaning up..."
   umount /mnt/crl
   losetup -d "${LOOPD}"
