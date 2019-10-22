@@ -11,6 +11,7 @@ usage: ${0} [- options...]
 System options:
 
       -c                Specify number of cores (default = [cores+1]/2)
+      -e                Boot using UEFI instead of BIOS
       -i                Use IDE disks instead of default VIRTIO
       -m <MiB size>     Specify RAM available to VM
       -k                Enable Win2K hack (solves disk full bug, slows IDE)
@@ -77,13 +78,15 @@ FRMTP=false
 IFACE=virtio
 VLNCH=true
 CORES=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
+FRMWR=BIOS
 
-while getopts "a:b:c:d:f:hikl:m:n:p:qrs:t:uv:wx:" opt; do
+while getopts "a:b:c:d:ef:hikl:m:n:p:qrs:t:uv:wx:" opt; do
   case "${opt}" in
     a) FDIMG="${OPTARG}"   ;;
     b) BTISO="${OPTARG}"   ;;
     c) CORES="${OPTARG}"   ;;
     d) DRISO="${OPTARG}"   ;;
+    e) FRMWR="UEFI"        ;;
     f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
     h) show_help; exit 0   ;;
     i) IFACE=ide           ;;
@@ -190,6 +193,14 @@ if ${FRMTP}; then
   exit 0
 fi
 
+if [ "${FRMWR}" = "UEFI" ]; then
+  UEFI="$(find /usr -type f -name 'OVMF_CODE.fd')"
+  case "${UEFI}" in
+    *OVMF_CODE.fd) UEFI="-bios ${UEFI}" ;;
+    *) echo 'OVMF_CODE.fd not found' && exit 1 ;;
+  esac
+fi
+
 SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
 [ -b "${PRIDR}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${FDIMG}" ] && SDRVS="${SDRVS} -drive file='${FDIMG}',index=0,if=floppy"
@@ -227,14 +238,14 @@ HTEXT='
 
 if [ -n "${TRMNL}" ]; then
   eval "${TRMNL} -e 'echo \"${HTEXT}\"; \
-    qemu-system-x86_64 -runas qemu ${W2KHK} -m $RAMSZ \
+    qemu-system-x86_64 -runas qemu ${W2KHK} ${UEFI} -m ${RAMSZ} \
     -enable-kvm -cpu host -machine type=pc,accel=kvm -smp cores=${CORES} \
     -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
     -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
      ${SDRVS} ${BTPRM}' 2> /dev/null" &
   sleep 2
 else
-  eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} -m $RAMSZ\
+  eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} ${UEFI} -m ${RAMSZ} \
     -enable-kvm -cpu host -machine type=pc,accel=kvm -smp cores=${CORES} \
     -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
     -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
