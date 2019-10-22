@@ -201,6 +201,11 @@ if [ "${FRMWR}" = "UEFI" ]; then
   esac
 fi
 
+case "$(uname)" in
+  Linux)  ACCEL="-enable-kvm -machine type=pc,accel=kvm" ;;
+  Darwin) ACCEL="-machine accel=hvf" ;;
+esac
+
 SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
 [ -b "${PRIDR}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${FDIMG}" ] && SDRVS="${SDRVS} -drive file='${FDIMG}',index=0,if=floppy"
@@ -239,14 +244,14 @@ HTEXT='
 if [ -n "${TRMNL}" ]; then
   eval "${TRMNL} -e 'echo \"${HTEXT}\"; \
     qemu-system-x86_64 -runas qemu ${W2KHK} ${UEFI} -m ${RAMSZ} \
-    -enable-kvm -cpu host -machine type=pc,accel=kvm -smp cores=${CORES} \
+    -cpu host ${ACCEL} -smp cores=${CORES} \
     -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
     -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
      ${SDRVS} ${BTPRM}' 2> /dev/null" &
   sleep 2
 else
   eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} ${UEFI} -m ${RAMSZ} \
-    -enable-kvm -cpu host -machine type=pc,accel=kvm -smp cores=${CORES} \
+    -cpu host ${ACCEL} -smp cores=${CORES} \
     -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
     -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
      ${SDRVS} ${BTPRM}; set +x"
