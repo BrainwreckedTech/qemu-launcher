@@ -4,6 +4,9 @@
 # - Use VNC or QXL/SPICE so qemu can run as another user
 # - Must use nomodeset with QXL or DMs may crash on user logout or shutdown
 
+# Letter usage -- parens = available
+# abcdef(g)hi(j)klmn(o)pqrstuvwx(y)(z)
+
 show_help() {
 cat <<EndOfHelp
 usage: ${0} [- options...]
@@ -12,6 +15,7 @@ System options:
 
       -c                Specify number of cores (default = [cores+1]/2)
       -e                Boot using UEFI instead of BIOS
+      -g                Use standard VGA instead of VirtIO
       -i                Use IDE disks instead of default VIRTIO
       -m <MiB size>     Specify RAM available to VM
       -k                Enable Win2K hack (solves disk full bug, slows IDE)
@@ -30,7 +34,8 @@ Image options:
 
 Network options:
 
-      -n <port:port>    Forward host's <port> to guest's <port>
+      -f <port:port>    Forward host's <port> to guest's <port>
+      -n                Use AMD PCNet instead of VirtIO
 
 Viewer options:
 
@@ -42,29 +47,8 @@ Viewer options:
 
 Utilties:
 
-      -r              Chroot into partition (diagnostics, repairs, etc.)
-      -f <format>     Format disk image specified by -p
-                        Uses MBR partition scheme
-                        <format> is [align][MiB] (example: g4096)
-                          align is one of n,m,g, or o
-                            n = none     partition starts at sector 1
-                            m = minimal  partition starts at sector 8
-                            g = grub     partition starts at sector 64
-                            o = optimal  partition starts at sector 2048
-                          MiB is the desired size if -p is not a block device
       -h              This help text.
-      -l </dev/drive> List partitions on drive that have no known format.
 
-Notes:
-
-    * GPT partitions of type MBR Parition Scheme are expected.
-    * There's no CLI tool to list partition formats, as set in the parition
-           table, to stdout.
-    * Most tools simply look at the first sector of partitions for the format.
-    * Initialization creates an MBR table inside the partition, creates a
-          single partition from 1MiB to -1s, formats it ext4, and creates a
-          swap file equal to the size specified by -m <MiB size>.
-    * Chroot uses losetup to access the partition within the partition
 EndOfHelp
 }
 
@@ -72,31 +56,35 @@ EndOfHelp
 NFSMT=/mnt/nfs
 MOUSE=tablet
 XDISP=50
-VIDEO="std -nographic -vnc :${XDISP}"
+VIDEO="virtio -nographic -vnc :${XDISP}"
 CROOT=false
 FRMTP=false
 IFACE=virtio
+NTCRD=virtio-net-pci
 VLNCH=true
-CORES=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
+VCORS=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
 FRMWR=BIOS
 
-while getopts "a:b:c:d:ef:hikl:m:n:p:qrs:t:uv:wx:" opt; do
+while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
   case "${opt}" in
     a) FDIMG="${OPTARG}"   ;;
     b) BTISO="${OPTARG}"   ;;
-    c) CORES="${OPTARG}"   ;;
+    c) VCORS="${OPTARG}"   ;;
     d) DRISO="${OPTARG}"   ;;
     e) FRMWR="UEFI"        ;;
-    f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
+#   f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
+    f) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
+    g) VIDEO="${VIDEO/virtio/std}" ;;
     h) show_help; exit 0   ;;
     i) IFACE=ide           ;;
     k) W2KHK="-win2k-hack" ;;
-    l) LSPTD="${OPTARG}"   ;;
+#   l) LSPTD="${OPTARG}"   ;;
     m) RAMSZ="${OPTARG}"   ;;
-    n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
+#   n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
+    n) NTCRD=pcnet         ;;
     p) PRIDR="${OPTARG}"   ;;
     q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
-    r) CROOT=true          ;;
+#   r) CROOT=true          ;;
     s) SCNDR="${OPTARG}"   ;;
     t) TRMNL="${OPTARG}"   ;;
     u) MOUSE="mouse"       ;;
@@ -112,121 +100,140 @@ shift $((OPTIND-1))
 [ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
 
-if ${CROOT}; then
-  LOOPD="$(sudo losetup -fP --show "${PRIDR}")"
-  partprobe # makes sure the kernel gets partition info from losetup
-  PTLST="$(lsblk -lno NAME,FSTYPE | grep "$(echo "${LOOPD}" | cut -b 6-)" | grep 'btrfs\|ext\|jfs\|reiser\|xfs' | cut -d\  -f1 | sed ':a;N;$!ba;s/\n/ /g')"
-  mkdir -p /mnt/crl
-  for CURPT in ${PTLST}; do
-    fsck -faMT "/dev/${CURPT}"
-    mount -v "/dev/${CURPT}" /mnt/crl
-    if [ -f /mnt/crl/etc/fstab ]; then
-      break
-    else
-      umount /mnt/crl
-    fi
-  done
-  mkdir -p "/mnt/crl/${NFSMT}"
-  mount -v --bind "${NFSMT}" "/mnt/crl/${NFSMT}"
-  if command -v arch-chroot > /dev/null 2>&1; then
-    arch-chroot /mnt/crl
-  else
-    mount -t proc proc /mnt/crl/proc
-    mount --rbind /sys /mnt/crl/sys
-    mount --rbind /dev /mnt/crl/dev
-    mount --rbind /run /mnt/crl/run
-    chroot /mnt/crl /bin/sh
-    for BNDMNT in proc sys dev run; do
-      eval umount -l "/mnt/crl/${BNDMNT}"
-    done
-  fi
-  umount -l "/mnt/crl/${NFSMT}"
-  umount -l /mnt/crl
-  losetup -d "${LOOPD}"
-  exit 0
-fi
+#if ${CROOT}; then
+#  LOOPD="$(sudo losetup -fP --show "${PRIDR}")"
+#  partprobe # makes sure the kernel gets partition info from losetup
+#  PTLST="$(lsblk -lno NAME,FSTYPE | grep "$(echo "${LOOPD}" | cut -b 6-)" | grep 'btrfs\|ext\|jfs\|reiser\|xfs' | cut -d\  -f1 | sed ':a;N;$!ba;s/\n/ /g')"
+#  mkdir -p /mnt/crl
+#  for CURPT in ${PTLST}; do
+#    fsck -faMT "/dev/${CURPT}"
+#    mount -v "/dev/${CURPT}" /mnt/crl
+#    if [ -f /mnt/crl/etc/fstab ]; then
+#      break
+#    else
+#      umount /mnt/crl
+#    fi
+#  done
+#  mkdir -p "/mnt/crl/${NFSMT}"
+#  mount -v --bind "${NFSMT}" "/mnt/crl/${NFSMT}"
+#  if command -v arch-chroot > /dev/null 2>&1; then
+#    arch-chroot /mnt/crl
+#  else
+#    mount -t proc proc /mnt/crl/proc
+#    mount --rbind /sys /mnt/crl/sys
+#    mount --rbind /dev /mnt/crl/dev
+#    mount --rbind /run /mnt/crl/run
+#    chroot /mnt/crl /bin/sh
+#    for BNDMNT in proc sys dev run; do
+#      eval umount -l "/mnt/crl/${BNDMNT}"
+#    done
+#  fi
+#  umount -l "/mnt/crl/${NFSMT}"
+#  umount -l /mnt/crl
+#  losetup -d "${LOOPD}"
+#  exit 0
+#fi
 
-if [ -n "${LSPTD}" ]; then
-  parted "${LSPTD}" unit GB print |
-    grep '^[0123456789 ]' |
-    grep -v 'ext[234]\|ntfs\|btrfs\|xfs\|fat32\|reiserfs' |
-    sed 's/^ //g' |
-    sed 's/  */ /g' |
-    cut -d\  -f1,4- |
-    sed 's/\([[:digit:]]\) \([[:digit:]]\)/\1\t\2/g' |
-    sed 's/GB /GB\t/g' |
-    sed "s/^/$(echo "${LSPTD}" | cut -b 6-)/g"
-  exit 0
-fi
+#if [ -n "${LSPTD}" ]; then
+#  parted "${LSPTD}" unit GB print |
+#    grep '^[0123456789 ]' |
+#    grep -v 'ext[234]\|ntfs\|btrfs\|xfs\|fat32\|reiserfs' |
+#    sed 's/^ //g' |
+#    sed 's/  */ /g' |
+#    cut -d\  -f1,4- |
+#    sed 's/\([[:digit:]]\) \([[:digit:]]\)/\1\t\2/g' |
+#    sed 's/GB /GB\t/g' |
+#    sed "s/^/$(echo "${LSPTD}" | cut -b 6-)/g"
+#  exit 0
+#fi
 
-if ${FRMTP}; then
-  if [ -b "${PRIDR}" ]; then
-    dd if=/dev/zero of="${PRIDR}" bs=1M status=progress
-  else
-    if [ "$(echo "${PRIDR}" | cut -b 1-4)" = "/dev" ]; then
-      echo "Block device ${FRMTP} does not exist.  Not creating."
-    else
-      echo "Writing disk image..."
-      dd if=/dev/zero of="${PRIDR}" bs=1M count="$(echo "${FRMTO}" | cut -b 2-)" status=progess
-    fi
-  fi
-  echo "Creating partition table..."
-  printf "i\n" | sudo parted "${PRIDR}" mklabel msdos
-  case $(echo "${FRMTO}" | cut -b 1) in
-    n) PSTRT=1s ;;
-    m) PSTRT=8s ;;
-    g) PSTRT=64s ;;
-    o) PSTRT=1MiB ;;
-  esac
-  printf "i\ni\n" | sudo parted -a none "${PRIDR}" mkpart primary ext4 "${PSTRT}" -- -1s
-  [ -b "${PRIDR}" ] && parted "$(echo "${PRIDR}" | cut -b 1-8)" name "$(echo "${PRIDR}" | cut -b 9-)"
-  LOOPD="$(sudo losetup -fP --show "${PRIDR}")"
-  echo "Creating file system..."
-  mkfs -q -t ext4 "${LOOPD}p1"
-  mkdir -p /mnt/crl
-  mount "${LOOPD}p1" /mnt/crl
-  echo "Creating swap file..."
-  dd if=/dev/zero of=/mnt/crl/swapfile bs=1M count="${RAMSZ}" status=progress
-  echo "Cleaning up..."
-  umount /mnt/crl
-  losetup -d "${LOOPD}"
-  exit 0
-fi
+#if ${FRMTP}; then
+#  if [ -b "${PRIDR}" ]; then
+#    dd if=/dev/zero of="${PRIDR}" bs=1M status=progress
+#  else
+#    if [ "$(echo "${PRIDR}" | cut -b 1-4)" = "/dev" ]; then
+#      echo "Block device ${FRMTP} does not exist.  Not creating."
+#    else
+#      echo "Writing disk image..."
+#      dd if=/dev/zero of="${PRIDR}" bs=1M count="$(echo "${FRMTO}" | cut -b 2-)" status=progess
+#    fi
+#  fi
+#  echo "Creating partition table..."
+#  printf "i\n" | sudo parted "${PRIDR}" mklabel msdos
+#  case $(echo "${FRMTO}" | cut -b 1) in
+#    n) PSTRT=1s ;;
+#    m) PSTRT=8s ;;
+#    g) PSTRT=64s ;;
+#    o) PSTRT=1MiB ;;
+#  esac
+#  printf "i\ni\n" | sudo parted -a none "${PRIDR}" mkpart primary ext4 "${PSTRT}" -- -1s
+#  [ -b "${PRIDR}" ] && parted "$(echo "${PRIDR}" | cut -b 1-8)" name "$(echo "${PRIDR}" | cut -b 9-)"
+#  LOOPD="$(sudo losetup -fP --show "${PRIDR}")"
+#  echo "Creating file system..."
+#  mkfs -q -t ext4 "${LOOPD}p1"
+#  mkdir -p /mnt/crl
+#  mount "${LOOPD}p1" /mnt/crl
+#  echo "Creating swap file..."
+#  dd if=/dev/zero of=/mnt/crl/swapfile bs=1M count="${RAMSZ}" status=progress
+#  echo "Cleaning up..."
+#  umount /mnt/crl
+#  losetup -d "${LOOPD}"
+#  exit 0
+#fi
 
 if [ "${FRMWR}" = "UEFI" ]; then
-  UEFI="$(find /usr -type f -name 'OVMF_CODE.fd')"
+  UEFI="$(find /usr -type f -name 'OVMF_CODE.fd' | grep '64')"
   case "${UEFI}" in
     *OVMF_CODE.fd) UEFI="-bios ${UEFI}" ;;
     *) echo 'OVMF_CODE.fd not found' && exit 1 ;;
   esac
 fi
 
-case "$(uname)" in
-  Linux)  ACCEL="-enable-kvm -machine type=pc,accel=kvm" ;;
-  Darwin) ACCEL="-machine accel=hvf" ;;
-esac
-
 SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
 [ -b "${PRIDR}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${FDIMG}" ] && SDRVS="${SDRVS} -drive file='${FDIMG}',index=0,if=floppy"
+[ -n "${FDIMG}" ] && SDRVS="${SDRVS} -drive file='${FDIMG}',index=0,if=floppy" && BTPRM="-boot a"
 [ -b "${FDIMG}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${SCNDR}" ] && SDRVS="${SDRVS} -drive file='${SCNDR}',index=1,media=disk,cache=none,if=${IFACE}"
 [ -b "${SCNDR}" ] && SDRVS="${SDRVS},format=raw"
 [ -n "${VIODR}" ] && SDRVS="${SDRVS} -drive file='${VIODR}',index=1,media=disk,cache=none,if=virtio"
 [ -b "${VIODR}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${BTISO}" ] && SDRVS="${SDRVS} -drive file='${BTISO}',index=1,media=cdrom" && BTPRM="-boot d"
+[ -n "${BTISO}" ] && SDRVS="${SDRVS} -drive file='${BTISO}',id=cdrom0,media=cdrom,if=none" && BTPRM="-boot d"
 [ -b "${BTISO}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${DRISO}" ] && SDRVS="${SDRVS} -drive file='${DRISO}',index=2,media=cdrom"
+[ -n "${DRISO}" ] && SDRVS="${SDRVS} -drive file='${DRISO}',id=cdrom1,media=cdrom,if=${IFACE}"
 [ -b "${DRISO}" ] && SDRVS="${SDRVS},format=raw"
 
 chown qemu "${PRIDR}"
 
+case "$(uname)" in
+  Linux)
+    ACCEL="-enable-kvm -machine type=q35,accel=kvm"
+    VNCMD="vncviewer :${XDISP}"
+    ;;
+  Darwin)
+    ACCEL="-machine q35,accel=hvf"
+    VNCMD="open vnc://localhost:59${XDISP}"
+    ;;
+esac
+
+case "$((VCORS % 2))" in
+  0) THRDS=2 ;;
+  1) THRDS=1 ;;
+esac
+
+PCORS="$((VCORS / THRDS))"
+
+if [ -n "${BTISO}" -o -n "${DRISO}" ] && [ "${IFACE}" = "virtio" ]; then
+  VSCSI="-device virtio-scsi-pci,id=scsi0"
+  [ -n "${BTISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.0,drive=cdrom0"
+  [ -n "${DRISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.1,drive=cdrom1"
+fi
+
 if ${VLNCH}; then
   case "${VIDEO}" in
     *vnc*)
-      bash -c "sleep 1; su -c 'DISPLAY=:0.0 vncviewer :${XDISP}' - ${SUDO_USER}" > /dev/null 2>&1 & ;;
+      sh -c "sleep 1; su -c \"DISPLAY=${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
     *qxl*)
-      bash -c "sleep 1; su -c 'DISPLAY=:0.0 spicec -h localhost -p 60${XDISP} &> /dev/null' - ${SUDO_USER}" & ;;
+      sh -c "sleep 1; su -c 'DISPLAY=${DISPLAY} spicec -h localhost -p 60${XDISP} &> /dev/null' - ${SUDO_USER}" & ;;
   esac
 else
   echo "VIDEO MODE: ${VIDEO}"
@@ -242,17 +249,24 @@ HTEXT='
 [ -t 1 ] && echo "${HTEXT}"
 
 if [ -n "${TRMNL}" ]; then
-  eval "${TRMNL} -e 'echo \"${HTEXT}\"; \
-    qemu-system-x86_64 -runas qemu ${W2KHK} ${UEFI} -m ${RAMSZ} \
-    -cpu host ${ACCEL} -smp cores=${CORES} \
-    -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
-    -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
-     ${SDRVS} ${BTPRM}' 2> /dev/null" &
+  eval "set -x; ${TRMNL} -e 'echo \"${HTEXT}\"; \
+    qemu-system-x86_64 -runas qemu -nodefaults ${W2KHK} ${UEFI} -m ${RAMSZ} \
+    -cpu host,+topoext ${ACCEL} -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
+    -monitor stdio -parallel none -serial none \
+    -vga ${VIDEO} \
+    -nic user,model=${NTCRD}${PRTFW} \
+    -device virtio-keyboard-pci \
+    -device virtio-${MOUSE}-pci \
+    -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}' 2> /dev/null" &
+
   sleep 2
 else
-  eval "set -x; qemu-system-x86_64 -runas qemu ${W2KHK} ${UEFI} -m ${RAMSZ} \
-    -cpu host ${ACCEL} -smp cores=${CORES} \
-    -parallel none -serial none -device usb-ehci -device usb-${MOUSE} \
-    -vga $VIDEO -net nic,model=virtio -net user${PRTFW} \
-     ${SDRVS} ${BTPRM}; set +x"
+  eval "set -x; qemu-system-x86_64 -runas qemu -nodefaults ${W2KHK} ${UEFI} -m ${RAMSZ} \
+    -cpu host,+topoext ${ACCEL} -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
+    -monitor stdio -parallel none -serial none \
+    -vga ${VIDEO} \
+    -nic user,model=${NTCRD}${PRTFW} \
+    -device virtio-keyboard-pci \
+    -device virtio-${MOUSE}-pci \
+    -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}"
 fi
