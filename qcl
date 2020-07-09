@@ -2,7 +2,6 @@
 
 # NOTES:
 # - Use VNC or QXL/SPICE so qemu can run as another user
-# - Must use nomodeset with QXL or DMs may crash on user logout or shutdown
 
 show_help() {
 cat <<EndOfHelp
@@ -52,17 +51,14 @@ Utilties:
 EndOfHelp
 }
 
-#NFSMT=/mnt/nfs
 BASE='-nodefaults -parallel none -serial none'
 MACHN='type=q35'
 KEYBD='-device virtio-keyboard-pci'
 MOUSE='-device virtio-tablet-pci'
 BALLN='-device virtio-balloon-pci'
 XDISP=50
-VIDEO='virtio-gpu'
+VIDEO='virtio-vga'
 DSPLY="vnc=localhost:${XDISP}"
-#CROOT=false
-#FRMTP=false
 IFACE='virtio'
 NTCRD='virtio-net-pci'
 VLNCH=true
@@ -80,20 +76,16 @@ while getopts "a:b:c:d:ef:ghiklm:np:qrs:t:uv:wx:" opt; do
     c) VCORS="${OPTARG}"               ;;
     d) DRISO="${OPTARG}"               ;;
     e) FRMWR='UEFI'                    ;;
-#   f) FRMTO="${OPTARG}"               ; FRMTP=true ;;
     f) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
     g) DSPLY='gtk'                     ;;
     h) show_help                       ; exit 0    ;;
     i) IFACE='ide'                     ;;
     k) W2KHK='-win2k-hack'             ;;
-#   l) LSPTD="${OPTARG}"               ;;
-    l) KEYBD=''; MOUSE=''; NTCRD='pcnet'; IFACE='ide'; BALLN=''; MACHN='type=pc'; VIDEO='-device cirrus-vga';;
+    l) KEYBD=''; MOUSE=''; NTCRD='pcnet'; IFACE='ide'; BALLN=''; MACHN='type=pc'; VIDEO='cirrus-vga';;
     m) RAMSZ="${OPTARG}"               ;;
-#   n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
     n) NTCRD='pcnet'                   ;;
     p) PRIDR="${OPTARG}"               ;;
     q) VIDEO='qxl-vga' ; DSPLY="spice-app -spice port=60${XPORT},disable-ticketing ${QXVSD} ${QXVSP} ${QXCHR}" ;;
-#   r) CROOT=true                      ;;
     s) SCNDR="${OPTARG}"               ;;
     t) TRMNL="${OPTARG}"               ;;
     u) MOUSE='-device virtio-mouse-pci';;
@@ -108,87 +100,6 @@ shift $((OPTIND-1))
 
 [ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
-
-#if ${CROOT}; then
-#  LOOPD="$(sudo losetup -fP --show "${PRIDR}")"
-#  partprobe # makes sure the kernel gets partition info from losetup
-#  PTLST="$(lsblk -lno NAME,FSTYPE | grep "$(echo "${LOOPD}" | cut -b 6-)" | grep 'btrfs\|ext\|jfs\|reiser\|xfs' | cut -d\  -f1 | sed ':a;N;$!ba;s/\n/ /g')"
-#  mkdir -p /mnt/crl
-#  for CURPT in ${PTLST}; do
-#    fsck -faMT "/dev/${CURPT}"
-#    mount -v "/dev/${CURPT}" /mnt/crl
-#    if [ -f /mnt/crl/etc/fstab ]; then
-#      break
-#    else
-#      umount /mnt/crl
-#    fi
-#  done
-#  mkdir -p "/mnt/crl/${NFSMT}"
-#  mount -v --bind "${NFSMT}" "/mnt/crl/${NFSMT}"
-#  if command -v arch-chroot > /dev/null 2>&1; then
-#    arch-chroot /mnt/crl
-#  else
-#    mount -t proc proc /mnt/crl/proc
-#    mount --rbind /sys /mnt/crl/sys
-#    mount --rbind /dev /mnt/crl/dev
-#    mount --rbind /run /mnt/crl/run
-#    chroot /mnt/crl /bin/sh
-#    for BNDMNT in proc sys dev run; do
-#      eval umount -l "/mnt/crl/${BNDMNT}"
-#    done
-#  fi
-#  umount -l "/mnt/crl/${NFSMT}"
-#  umount -l /mnt/crl
-#  losetup -d "${LOOPD}"
-#  exit 0
-#fi
-
-#if [ -n "${LSPTD}" ]; then
-#  parted "${LSPTD}" unit GB print |
-#    grep '^[0123456789 ]' |
-#    grep -v 'ext[234]\|ntfs\|btrfs\|xfs\|fat32\|reiserfs' |
-#    sed 's/^ //g' |
-#    sed 's/  */ /g' |
-#    cut -d\  -f1,4- |
-#    sed 's/\([[:digit:]]\) \([[:digit:]]\)/\1\t\2/g' |
-#    sed 's/GB /GB\t/g' |
-#    sed "s/^/$(echo "${LSPTD}" | cut -b 6-)/g"
-#  exit 0
-#fi
-
-#if ${FRMTP}; then
-#  if [ -b "${PRIDR}" ]; then
-#    dd if=/dev/zero of="${PRIDR}" bs=1M status=progress
-#  else
-#    if [ "$(echo "${PRIDR}" | cut -b 1-4)" = "/dev" ]; then
-#      echo "Block device ${FRMTP} does not exist.  Not creating."
-#    else
-#      echo "Writing disk image..."
-#      dd if=/dev/zero of="${PRIDR}" bs=1M count="$(echo "${FRMTO}" | cut -b 2-)" status=progess
-#    fi
-#  fi
-#  echo "Creating partition table..."
-#  printf "i\n" | sudo parted "${PRIDR}" mklabel msdos
-#  case $(echo "${FRMTO}" | cut -b 1) in
-#    n) PSTRT=1s ;;
-#    m) PSTRT=8s ;;
-#    g) PSTRT=64s ;;
-#    o) PSTRT=1MiB ;;
-#  esac
-#  printf "i\ni\n" | sudo parted -a none "${PRIDR}" mkpart primary ext4 "${PSTRT}" -- -1s
-#  [ -b "${PRIDR}" ] && parted "$(echo "${PRIDR}" | cut -b 1-8)" name "$(echo "${PRIDR}" | cut -b 9-)"
-#  LOOPD="$(sudo losetup -fP --show "${PRIDR}")"
-#  echo "Creating file system..."
-#  mkfs -q -t ext4 "${LOOPD}p1"
-#  mkdir -p /mnt/crl
-#  mount "${LOOPD}p1" /mnt/crl
-#  echo "Creating swap file..."
-#  dd if=/dev/zero of=/mnt/crl/swapfile bs=1M count="${RAMSZ}" status=progress
-#  echo "Cleaning up..."
-#  umount /mnt/crl
-#  losetup -d "${LOOPD}"
-#  exit 0
-#fi
 
 if [ "${FRMWR}" = "UEFI" ]; then
   UEFI="$(find /usr -type f -name 'OVMF_CODE.fd' | grep '64')"
@@ -253,7 +164,7 @@ if ${VLNCH}; then
     *vnc*)
       sh -c "sleep 1; su -c \"DISPLAY=${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
 #   *spice*)
-#    command -v spicy > /dev/null 2>&1 && CMMND="spicy -h localhost -p 60${XPORT}"
+#     command -v spicy > /dev/null 2>&1 && CMMND="spicy -h localhost -p 60${XPORT}"
 #     command -v remote-viewer > /dev/null 2>&1 && CMMND="remote-viewer spice://localhost:60${XPORT}"
 #     sh -c "sleep 1; su -c 'DISPLAY=${DISPLAY} ${CMMND} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
   esac
@@ -268,8 +179,8 @@ printf '\n>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
 >>> USE quit TO TELL QEMU TO STOP IMMEDIATELY
 >>> PRESS CTRL+C TO FORCE-QUIT QEMU\n\n' > "${TMPFL}"
 
-QCMND="qemu-system-x86_64 -runas qemu ${ACCEL} ${UEFI} \
-  -m ${RAMSZ} -machine ${MACHN} ${BASE} ${W2KHK} -cpu host,+topoext \
+QCMND="qemu-system-x86_64 -runas qemu ${ACCEL} ${UEFI} -m ${RAMSZ} \
+  -machine ${MACHN} ${BASE} ${W2KHK} -cpu host,+topoext \
   -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
   -monitor stdio -device ${VIDEO} -display ${DSPLY} \
   -nic user,model=${NTCRD}${PRTFW} \
