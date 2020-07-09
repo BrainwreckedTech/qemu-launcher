@@ -15,7 +15,6 @@ System options:
 
       -c                Specify number of cores (default = [cores+1]/2)
       -e                Boot using UEFI instead of BIOS
-      -g                Use standard VGA instead of VirtIO
       -i                Use IDE disks instead of default VIRTIO
       -m <MiB size>     Specify RAM available to VM
       -k                Enable Win2K hack (solves disk full bug, slows IDE)
@@ -76,7 +75,6 @@ while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
     e) FRMWR="UEFI"        ;;
 #   f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
     f) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
-    g) VIDEO="${VIDEO/virtio/std}" ;;
     h) show_help; exit 0   ;;
     i) IFACE=ide           ;;
     k) W2KHK="-win2k-hack" ;;
