@@ -239,34 +239,27 @@ else
   echo "VIDEO MODE: ${VIDEO}"
 fi
 
-HTEXT='
->>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
+TMPFL="$(mktemp)"
+
+printf '\n>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
 >>> USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM
 >>> USE quit TO TELL QEMU TO STOP IMMEDIATELY
->>> PRESS CTRL+C TO FORCE-QUIT QEMU
-'
+>>> PRESS CTRL+C TO FORCE-QUIT QEMU\n\n' > "${TMPFL}"
 
-[ -t 1 ] && echo "${HTEXT}"
+QCMND="qemu-system-x86_64 -runas qemu -nodefaults ${W2KHK} ${UEFI} -m ${RAMSZ} \
+   -cpu host,+topoext ${ACCEL} -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
+   -monitor stdio -parallel none -serial none \
+   -vga ${VIDEO} \
+   -nic user,model=${NTCRD}${PRTFW} \
+   -device virtio-keyboard-pci \
+   -device virtio-${MOUSE}-pci \
+   -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}"
 
 if [ -n "${TRMNL}" ]; then
-  eval "set -x; ${TRMNL} -e 'echo \"${HTEXT}\"; \
-    qemu-system-x86_64 -runas qemu -nodefaults ${W2KHK} ${UEFI} -m ${RAMSZ} \
-    -cpu host,+topoext ${ACCEL} -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
-    -monitor stdio -parallel none -serial none \
-    -vga ${VIDEO} \
-    -nic user,model=${NTCRD}${PRTFW} \
-    -device virtio-keyboard-pci \
-    -device virtio-${MOUSE}-pci \
-    -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}' 2> /dev/null" &
-
+  set -x
+  ${TRMNL} -e "${QCMND}" &
   sleep 2
 else
-  eval "set -x; qemu-system-x86_64 -runas qemu -nodefaults ${W2KHK} ${UEFI} -m ${RAMSZ} \
-    -cpu host,+topoext ${ACCEL} -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
-    -monitor stdio -parallel none -serial none \
-    -vga ${VIDEO} \
-    -nic user,model=${NTCRD}${PRTFW} \
-    -device virtio-keyboard-pci \
-    -device virtio-${MOUSE}-pci \
-    -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}"
+  [ -t 1 ] && cat "${TMPFL}"
+  eval "set -x; ${QCMND}"
 fi
