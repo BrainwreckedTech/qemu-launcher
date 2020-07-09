@@ -189,20 +189,30 @@ if [ "${FRMWR}" = "UEFI" ]; then
   esac
 fi
 
-SDRVS="-drive file='${PRIDR}',index=0,media=disk,cache=none,if=${IFACE}" && BTPRM="-boot c"
-[ -b "${PRIDR}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${FDIMG}" ] && SDRVS="${SDRVS} -drive file='${FDIMG}',index=0,if=floppy" && BTPRM="-boot a"
-[ -b "${FDIMG}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${SCNDR}" ] && SDRVS="${SDRVS} -drive file='${SCNDR}',index=1,media=disk,cache=none,if=${IFACE}"
-[ -b "${SCNDR}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${VIODR}" ] && SDRVS="${SDRVS} -drive file='${VIODR}',index=1,media=disk,cache=none,if=virtio"
-[ -b "${VIODR}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${BTISO}" ] && SDRVS="${SDRVS} -drive file='${BTISO}',id=cdrom0,media=cdrom,if=none" && BTPRM="-boot d"
-[ -b "${BTISO}" ] && SDRVS="${SDRVS},format=raw"
-[ -n "${DRISO}" ] && SDRVS="${SDRVS} -drive file='${DRISO}',id=cdrom1,media=cdrom,if=${IFACE}"
-[ -b "${DRISO}" ] && SDRVS="${SDRVS},format=raw"
+BTPRM="-boot c"
+[ -n "${BTISO}" ] && BTPRM="-boot d"
+[ -n "${BTISO}" ] && [ -n "${SCNDR}" -o -n "${VIODR}" ] && BTPRM="-boot e"
+[ -n "${FDIMG}" ] && BTPRM="-boot a"
 
-chown qemu "${PRIDR}"
+LCV=0
+for DRIVE in "${FDIMG}" "${PRIDR}" "${SCNDR}" "${VIODR}" "${BTISO}" "${DRISO}"; do
+  LCV=$((LCV+1))
+  if [ -n "${DRIVE}" ]; then
+    case ${LCV} in
+      1) DRVID="fd0"; MTYPE="floppy"; DRVIF="floppy"; IFSLT="bus=0,unit=0";;
+      2) DRVID="hd0"; MTYPE="disk"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=0,unit=0" || IFSLT="";;
+      3) DRVID="hd1"; MTYPE="disk"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=0,unit=1" || IFSLT="";;
+      4) DRVID="vd1"; MTYPE="disk"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=0,unit=1" || IFSLT="";;
+      5) DRVID="cd0"; MTYPE="cdrom"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=1,unit=0" || IFSLT=""; [ "${IFACE}" = "virtio" ] && DRVIF="scsi";;
+      6) DRVID="cd1"; MTYPE="cdrom"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=1,unit=0" || IFSLT=""; [ "${IFACE}" = "virtio" ] && DRVIF="scsi";;
+    esac
+
+    SDRVS="${SDRVS} -drive id=${DRVID},media=${MTYPE},file=${DRIVE},cache=none,if=${DRVIF}"
+    [ -n "${IFSLT}" ] && SDRVS="${SDRVS},${IFSLT}"
+    echo "${DRIVE}" | grep -q '[\.img\|\.iso]$' > /dev/null && SDRVS="${SDRVS},format=raw"
+    chown qemu ${DRIVE}
+  fi
+done
 
 case "$(uname)" in
   Linux)
