@@ -69,7 +69,11 @@ VLNCH=true
 VCORS=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
 FRMWR='BIOS'
 
-while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
+QXVSD='-device virtio-serial-pci'
+QXVSP='-device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0'
+QXCHR='-chardev spicevmc,id=spicechannel0,name=vdagent'
+
+while getopts "a:b:c:d:ef:ghiklm:np:qrs:t:uv:wx:" opt; do
   case "${opt}" in
     a) FDIMG="${OPTARG}"               ;;
     b) BTISO="${OPTARG}"               ;;
@@ -88,7 +92,7 @@ while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
 #   n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
     n) NTCRD='pcnet'                   ;;
     p) PRIDR="${OPTARG}"               ;;
-    q) VIDEO="qxl-vga; DSPLY="spice-app -spice port=60${XDISP},disable-ticketing";;
+    q) VIDEO='qxl-vga' ; DSPLY="spice-app -spice port=60${XPORT},disable-ticketing ${QXVSD} ${QXVSP} ${QXCHR}" ;;
 #   r) CROOT=true                      ;;
     s) SCNDR="${OPTARG}"               ;;
     t) TRMNL="${OPTARG}"               ;;
