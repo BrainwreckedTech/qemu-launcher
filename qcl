@@ -52,8 +52,9 @@ Utilties:
 EndOfHelp
 }
 
-
 NFSMT=/mnt/nfs
+BASE='-nodefaults -parallel none -serial none'
+MACHN='type=q35'
 MOUSE=tablet
 XDISP=50
 VIDEO="virtio -nographic -vnc :${XDISP}"
@@ -216,12 +217,13 @@ done
 
 case "$(uname)" in
   Linux)
-    ACCEL="-enable-kvm -machine type=q35,accel=kvm"
-    VNCMD="vncviewer :${XDISP}"
+    ACCEL='-enable-kvm'
+    MACHN="${MACHN},accel=kvm"
+    VNCMD="vncviewer :${XPORT}"
     ;;
   Darwin)
-    ACCEL="-machine q35,accel=hvf"
-    VNCMD="open vnc://localhost:59${XDISP}"
+    MACHN="${MACHN},accel=hvf"
+    VNCMD="open vnc://localhost:59${XPORT}"
     ;;
 esac
 
@@ -256,10 +258,10 @@ printf '\n>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
 >>> USE quit TO TELL QEMU TO STOP IMMEDIATELY
 >>> PRESS CTRL+C TO FORCE-QUIT QEMU\n\n' > "${TMPFL}"
 
-QCMND="qemu-system-x86_64 -runas qemu -nodefaults ${W2KHK} ${UEFI} -m ${RAMSZ} \
-   -cpu host,+topoext ${ACCEL} -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
-   -monitor stdio -parallel none -serial none \
-   -vga ${VIDEO} \
+QCMND="qemu-system-x86_64 -runas qemu ${ACCEL} ${UEFI} \
+  -m ${RAMSZ} -machine ${MACHN} ${BASE} ${W2KHK} -cpu host,+topoext \
+  -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
+   -monitor stdio -vga ${VIDEO} \
    -nic user,model=${NTCRD}${PRTFW} \
    -device virtio-keyboard-pci \
    -device virtio-${MOUSE}-pci \
