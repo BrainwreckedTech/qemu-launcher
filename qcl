@@ -13,10 +13,13 @@ System options:
       -c                Specify number of cores (default = [cores+1]/2)
       -e                Boot using UEFI instead of BIOS
       -i                Use IDE disks instead of default VIRTIO
+      -l                Use legacy hardware*
       -m <MiB size>     Specify RAM available to VM
       -k                Enable Win2K hack (solves disk full bug, slows IDE)
       -u                Use USB mouse instead of tablet device
       -t <term-bin>     Launch QEMU in <term-bin> in background
+
+    *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + drives on IDE (no VirtIO)
 
 Image options:
 
@@ -37,6 +40,7 @@ Viewer options:
 
       The default is to start a VNC host and launch a VNC viewer.
 
+      -g                Use a GTK window (QEMU default)
       -q                Use QXL/SPICE instead of VNC
       -w                Don't launch SPICE/vncviewer directly
       -x                Specify X11 listening port number
@@ -74,10 +78,12 @@ while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
     e) FRMWR='UEFI'                    ;;
 #   f) FRMTO="${OPTARG}"               ; FRMTP=true ;;
     f) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
-    h) show_help; exit 0               ;;
+    g) DSPLY='gtk'                     ;;
+    h) show_help                       ; exit 0    ;;
     i) IFACE='ide'                     ;;
     k) W2KHK='-win2k-hack'             ;;
 #   l) LSPTD="${OPTARG}"               ;;
+    l) KEYBD=''; MOUSE=''; NTCRD='pcnet'; IFACE='ide'; BALLN=''; MACHN='type=pc'; VIDEO='-device cirrus-vga';;
     m) RAMSZ="${OPTARG}"               ;;
 #   n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
     n) NTCRD='pcnet'                   ;;
@@ -234,8 +240,8 @@ PCORS="$((VCORS / THRDS))"
 
 if [ -n "${BTISO}" -o -n "${DRISO}" ] && [ "${IFACE}" = "virtio" ]; then
   VSCSI="-device virtio-scsi-pci,id=scsi0"
-  [ -n "${BTISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.0,drive=cdrom0"
-  [ -n "${DRISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.1,drive=cdrom1"
+  [ -n "${BTISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.0,drive=cd0"
+  [ -n "${DRISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.1,drive=cd1"
 fi
 
 if ${VLNCH}; then
