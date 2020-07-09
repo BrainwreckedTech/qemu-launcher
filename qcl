@@ -4,9 +4,6 @@
 # - Use VNC or QXL/SPICE so qemu can run as another user
 # - Must use nomodeset with QXL or DMs may crash on user logout or shutdown
 
-# Letter usage -- parens = available
-# abcdef(g)hi(j)klmn(o)pqrstuvwx(y)(z)
-
 show_help() {
 cat <<EndOfHelp
 usage: ${0} [- options...]
@@ -38,7 +35,7 @@ Network options:
 
 Viewer options:
 
-      The default is to launch vncviewer
+      The default is to start a VNC host and launch a VNC viewer.
 
       -q                Use QXL/SPICE instead of VNC
       -w                Don't launch SPICE/vncviewer directly
@@ -51,47 +48,49 @@ Utilties:
 EndOfHelp
 }
 
-NFSMT=/mnt/nfs
+#NFSMT=/mnt/nfs
 BASE='-nodefaults -parallel none -serial none'
 MACHN='type=q35'
-MOUSE=tablet
+KEYBD='-device virtio-keyboard-pci'
+MOUSE='-device virtio-tablet-pci'
+BALLN='-device virtio-balloon-pci'
 XDISP=50
 VIDEO='virtio-gpu'
 DSPLY="vnc=localhost:${XDISP}"
-CROOT=false
-FRMTP=false
-IFACE=virtio
-NTCRD=virtio-net-pci
+#CROOT=false
+#FRMTP=false
+IFACE='virtio'
+NTCRD='virtio-net-pci'
 VLNCH=true
 VCORS=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
-FRMWR=BIOS
+FRMWR='BIOS'
 
 while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
   case "${opt}" in
-    a) FDIMG="${OPTARG}"   ;;
-    b) BTISO="${OPTARG}"   ;;
-    c) VCORS="${OPTARG}"   ;;
-    d) DRISO="${OPTARG}"   ;;
-    e) FRMWR="UEFI"        ;;
-#   f) FRMTO="${OPTARG}"   ; FRMTP=true ;;
+    a) FDIMG="${OPTARG}"               ;;
+    b) BTISO="${OPTARG}"               ;;
+    c) VCORS="${OPTARG}"               ;;
+    d) DRISO="${OPTARG}"               ;;
+    e) FRMWR='UEFI'                    ;;
+#   f) FRMTO="${OPTARG}"               ; FRMTP=true ;;
     f) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
-    h) show_help; exit 0   ;;
-    i) IFACE=ide           ;;
-    k) W2KHK="-win2k-hack" ;;
-#   l) LSPTD="${OPTARG}"   ;;
-    m) RAMSZ="${OPTARG}"   ;;
+    h) show_help; exit 0               ;;
+    i) IFACE='ide'                     ;;
+    k) W2KHK='-win2k-hack'             ;;
+#   l) LSPTD="${OPTARG}"               ;;
+    m) RAMSZ="${OPTARG}"               ;;
 #   n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
-    n) NTCRD=pcnet         ;;
-    p) PRIDR="${OPTARG}"   ;;
+    n) NTCRD='pcnet'                   ;;
+    p) PRIDR="${OPTARG}"               ;;
     q) VIDEO="qxl-vga; DSPLY="spice-app -spice port=60${XDISP},disable-ticketing";;
-#   r) CROOT=true          ;;
-    s) SCNDR="${OPTARG}"   ;;
-    t) TRMNL="${OPTARG}"   ;;
-    u) MOUSE="mouse"       ;;
-    v) VIODR="${OPTARG}"   ;;
-    w) VLNCH=false         ;;
-    x) XDISP="${OPTARG}"   ; VIDEO="std -nographic -vnc :${XDISP}" ;;
-    '?') show_help >&2 && exit 1;;
+#   r) CROOT=true                      ;;
+    s) SCNDR="${OPTARG}"               ;;
+    t) TRMNL="${OPTARG}"               ;;
+    u) MOUSE='-device virtio-mouse-pci';;
+    v) VIODR="${OPTARG}"               ;;
+    w) VLNCH=false                     ;;
+    x) XDISP="${OPTARG}"               ;;
+    '?') show_help >&2 && exit 1       ;;
   esac
 done
 
@@ -264,9 +263,9 @@ QCMND="qemu-system-x86_64 -runas qemu ${ACCEL} ${UEFI} \
   -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
   -monitor stdio -device ${VIDEO} -display ${DSPLY} \
   -nic user,model=${NTCRD}${PRTFW} \
-  -device virtio-keyboard-pci \
-  -device virtio-${MOUSE}-pci \
-  -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}"
+  ${KEYBD} ${MOUSE} ${BALLN} \
+  ${SDRVS} ${VSCSI} ${BTPRM}"
+
 
 if [ -n "${TRMNL}" ]; then
   set -x
@@ -276,3 +275,5 @@ else
   [ -t 1 ] && cat "${TMPFL}"
   eval "set -x; ${QCMND}"
 fi
+
+rm "${TMPFL}"
