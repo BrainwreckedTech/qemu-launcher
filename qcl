@@ -57,7 +57,8 @@ BASE='-nodefaults -parallel none -serial none'
 MACHN='type=q35'
 MOUSE=tablet
 XDISP=50
-VIDEO="virtio -nographic -vnc :${XDISP}"
+VIDEO='virtio-gpu'
+DSPLY="vnc=localhost:${XDISP}"
 CROOT=false
 FRMTP=false
 IFACE=virtio
@@ -84,7 +85,7 @@ while getopts "a:b:c:d:ef:ghikl:m:np:qrs:t:uv:wx:" opt; do
 #   n) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
     n) NTCRD=pcnet         ;;
     p) PRIDR="${OPTARG}"   ;;
-    q) VIDEO="qxl -spice port=60${XDISP},disable-ticketing" ;;
+    q) VIDEO="qxl-vga; DSPLY="spice-app -spice port=60${XDISP},disable-ticketing";;
 #   r) CROOT=true          ;;
     s) SCNDR="${OPTARG}"   ;;
     t) TRMNL="${OPTARG}"   ;;
@@ -241,11 +242,13 @@ if [ -n "${BTISO}" -o -n "${DRISO}" ] && [ "${IFACE}" = "virtio" ]; then
 fi
 
 if ${VLNCH}; then
-  case "${VIDEO}" in
+  case "${DSPLY}" in
     *vnc*)
       sh -c "sleep 1; su -c \"DISPLAY=${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
-    *qxl*)
-      sh -c "sleep 1; su -c 'DISPLAY=${DISPLAY} spicec -h localhost -p 60${XDISP} &> /dev/null' - ${SUDO_USER}" & ;;
+#   *spice*)
+#    command -v spicy > /dev/null 2>&1 && CMMND="spicy -h localhost -p 60${XPORT}"
+#     command -v remote-viewer > /dev/null 2>&1 && CMMND="remote-viewer spice://localhost:60${XPORT}"
+#     sh -c "sleep 1; su -c 'DISPLAY=${DISPLAY} ${CMMND} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
   esac
 else
   echo "VIDEO MODE: ${VIDEO}"
@@ -261,11 +264,11 @@ printf '\n>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
 QCMND="qemu-system-x86_64 -runas qemu ${ACCEL} ${UEFI} \
   -m ${RAMSZ} -machine ${MACHN} ${BASE} ${W2KHK} -cpu host,+topoext \
   -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
-   -monitor stdio -vga ${VIDEO} \
-   -nic user,model=${NTCRD}${PRTFW} \
-   -device virtio-keyboard-pci \
-   -device virtio-${MOUSE}-pci \
-   -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}"
+  -monitor stdio -device ${VIDEO} -display ${DSPLY} \
+  -nic user,model=${NTCRD}${PRTFW} \
+  -device virtio-keyboard-pci \
+  -device virtio-${MOUSE}-pci \
+  -device virtio-balloon-pci ${SDRVS} ${VSCSI} ${BTPRM}"
 
 if [ -n "${TRMNL}" ]; then
   set -x
