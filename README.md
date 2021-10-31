@@ -1,7 +1,7 @@
 QEMU Launcher
 =============
 
-QEMU Launcher is an application designed for simple QEMU virtual machine management.  It is licensed under the GPLv3.  It not available under a prior or future version of the GPL.
+QEMU Launcher is a script designed to simplify QEMU virtual machine management.  It is licensed under the GPLv3.  It not available under a prior or future version of the GPL.
 
 Prerequisites
 -------------
@@ -13,100 +13,46 @@ Command Line Operation
 * tigervnc (for vncviewer)
 * parted (for disk partition listings)
 
-GUI Operation
-
-* wxpython
-* wxgtk (wxpython may pull this in)
-* python2 (wxpython may pull this in)
-
-GUI Development
-
-* wxFormBuilder
-
-Optional Dependencies
----------------------
-
-arch-install-scripts (arch-chroot)
-
-> If this script is not present, the script will do some base mounting itself.  However, arch-chroot is more comprehensive and recommended.
-
 
 Operation
 ---------
 
-Terminal (GUI Only)
+### System options:
 
-> Allows the user to specify if they would like to use a terminal and, if so, which one.  Use of this option is highly recommended as it gives access to the QEMU console.  A terminal must be used if the user would like to chroot into a disk image that holds a GNU/Linux OS.
+      --nokvm|--nohvf       Disable KVM/HVF accelleration
+      --cpu <cpu>           Specify the CPU to emulate
+      --cores               Specify number of cores (default = [cores+1]/2)
+      --efi <bits>          Boot using <bits>-bit UEFI instead of BIOS
+      --win2k               Enable Win2K hack (solves disk full bug, slows IDE)
+      --legacy              Use legacy hardware*
+      --ram <MiB>           Specify RAM available to VM
+      --sound               Enable sound
+      --term <term-bin>     Launch QEMU in <term-bin> in background
+      --mouse               Use USB mouse instead of tablet device
+      --gpu <card>          Specify the GPU_CARD device to use
 
-Terminal (-t, CLI Only)
+      *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + drives on IDE (no VirtIO)
 
-> Allows the user to specify a terminal emulator to execute QEMU inside of.  The terminal emulator will be forked to the background.  A 2-second pause is implemented before QCL is allowed to exit.  This option is useful if you are not using QGL and want to use QCL in conjunction with something else.
+### Drive options:
 
-Disk Images (-p -s -b -d -a)
+      --drive <file>:<floppy|ide|scsi|ahci|virtio>
 
-> The user can specify up to five disk images of a pre-determined type.  Primary devices will boot while secondary devices will not.  If both Primary HDD and ROM are specified, QEMU Launcher will boot from the ROM media.
+### Network options:
 
-Cores (-c, CLI Only for now)
+      --forward <port:port> Forward host's <port> to guest's <port>
+      --pcnet               Use an AMD PCNet NIC instead of VirtIO
+      --ne2k                Use an NE2000-compatible NIC instead of VirtIO
 
-> The user can specify how many cores to give to the VM.  Default is [cores+1]/2
+### Display options:
 
-Chroot (-r)
+      The default is to start a VNC host and launch a VNC viewer.
 
-> For GNU/Linux virtual machines, QEMU Launcher can set up a chroot for diagnosis and repair.  In the GUI, this will necessitate a terminal be used.  QEMU Launcher will first seek out partitions created by losetup for known Linux filesystems (btrfs, ext, jfs, resiser, xfs).  It will then test to see if it can find /etc/fstab.  When /etc/fstab is found, QEMU Launcher will chroot into that partition.
+      --gtk             Use a GTK window (QEMU default)
+      --qxl <port>      Use QXL/SPICE instead of VNC
+      --daemon          Don't launch SPICE/vncviewer directly
+      --xport           Specify X11 listening port number
 
-USB Mouse (-u)
+### Utilties:
 
-> Some operating systems (FreeBSD, early Windows) will not work with the Tablet Device that QEMU Launcher sets up by default.  While tracking might not be synchronized, some mouse is better than no mouse.
-
-IDE Mode (-i)
-
-> Some operating systems (early Windows) have no VirtIO drivers available to them.  Some operating systems (Windows 2000, XP) have drivers but don't have an easy way to install them during setup.
-
-Force Secondary VirtIO (-v)
-
-> For operating systems that have VirtIO drivers that can be installed post-setup, this allows the virtual machine to keep IDE Mode on the Primary HDD (so the OS can boot) while presenting a VirtIO HDD (so the drivers can be installed).
-
-Use QXL/SPICE (-q)
-
-> Through my personal testing, I found VNC to be a better solution that the combination of QXL and SPICE thanks to the recent addition of bochs_drm to the Linux kernel.  Others may have had better luck or have a larger collection of VMs that might be a hassle to move, so the option to use QXL and SPICE has stayed.
-
-Don't launch viewer (-w, CLI-only for now)
-
-> Don't launch SPICE/VNC client.
-
-Win2K Hack (-k, CLI-only for now)
-
-> Enable the QEMU Win2K Hack.  This solves the disk full bug.  IDE transfers are slowed down.  Once Windows 2000 is installed, this option is no longer needed.
-
-Memory Allocation (-m)
-
-> Self-explanatory.
-
-X11 Listening Port (-x)
-
-> When using VNC, this will be the port specified in the vncviewer command.  When using QXL, this number is added to 6000 to get the SPICE listening port number.
-
-Format (-f [format], CLI-only for now)
-
-> Create & format the disk image specified as the Primary HDD.  For now, this always uses the MBR partition scheme and creates a single partition only.  The [format] is [align][MiB], where [align] is one of (n)one, (m)inimal, (g)rub, or (o)ptimal, and [MiB] is the desired size if the Primary HDD is not a block device.  Example: g4096 will create a 4GiB disk image with one partition that starts at sector 64.
-
-
-Files
------
-
-qcl - QEMU Command Launcher
-
-> This is the shell script that forms the basis of QEMU Launcher's simple virtual machine management.
-
-qgl - QEMU Graphical Launcher
-
-> This script contains the logic code behind the GUI implementation of QEMU Launcher.
-
-qglgui.py -- QEMU Graphical Launcher Graphical User Interface
-
-> This script contains the GUI elements.  It is built with wxFormBuilder and should not be edited directly.
-
-ql.fbp -- QEMU Launcher Form Builder Project
-
-> This is the project file generated by wxFormBuilder.  This is used to generate qglgui.py
+      -h|--help         This help text.
 

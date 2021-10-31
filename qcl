@@ -3,198 +3,260 @@
 # NOTES:
 # - Use VNC or QXL/SPICE so qemu can run as another user
 
-show_help() {
+function show_help {
 cat <<EndOfHelp
 usage: ${0} [- options...]
 
 System options:
 
-      -c                Specify number of cores (default = [cores+1]/2)
-      -e                Boot using UEFI instead of BIOS
-      -i                Use IDE disks instead of default VIRTIO
-      -l                Use legacy hardware*
-      -m <MiB size>     Specify RAM available to VM
-      -k                Enable Win2K hack (solves disk full bug, slows IDE)
-      -u                Use USB mouse instead of tablet device
-      -t <term-bin>     Launch QEMU in <term-bin> in background
+      --nokvm|--nohvf       Disable KVM/HVF accelleration
+      --cpu <cpu>           Specify the CPU to emulate
+      --cores               Specify number of cores (default = [cores+1]/2)
+      --efi <bits>          Boot using <bits>-bit UEFI instead of BIOS
+      --win2k               Enable Win2K hack (solves disk full bug, slows IDE)
+      --legacy              Use legacy hardware*
+      --ram <MiB>           Specify RAM available to VM
+      --sound               Enable sound
+      --term <term-bin>     Launch QEMU in <term-bin> in background
+      --mouse               Use USB mouse instead of tablet device
+      --gpu <card>          Specify the GPU_CARD device to use
 
     *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + drives on IDE (no VirtIO)
 
-Image options:
+Drive options:
 
-      -a </path/to/img> Floppy drive disk image
-      -b </path/to/iso> Bootable ISO (will boot this instead of primary drive)
-      -d </path/to/iso> Seconday ISO (no boot -- for drivers, etc.)
-      -p </path/to/img> Primary drive disk image (bootable drive)
-      -s </path/to/img> Secondary drive disk image (no boot)
-      -v </path/to/img> Secondary drive disk image, VIRTIO forced
-                          (Used when you can't use VirtIO to install Windows)
+      --drive <file>:<floppy|ide|scsi|ahci|virtio>
 
 Network options:
 
-      -f <port:port>    Forward host's <port> to guest's <port>
-      -n                Use AMD PCNet instead of VirtIO
+      --forward <port:port> Forward host's <port> to guest's <port>
+      --pcnet               Use an AMD PCNet NIC instead of VirtIO
+      --ne2k                Use an NE2000-compatible NIC instead of VirtIO
 
-Viewer options:
+Display options:
 
       The default is to start a VNC host and launch a VNC viewer.
 
-      -g                Use a GTK window (QEMU default)
-      -q                Use QXL/SPICE instead of VNC
-      -w                Don't launch SPICE/vncviewer directly
-      -x                Specify X11 listening port number
+      --gtk             Use a GTK window (QEMU default)
+      --qxl <port>      Use QXL/SPICE instead of VNC
+      --daemon          Don't launch SPICE/vncviewer directly
+      --xport           Specify X11 listening port number
 
 Utilties:
 
-      -h              This help text.
+      -h|--help         This help text.
 
 EndOfHelp
 }
 
+FLOPS=0
+PATAS=0
+SATAS=0
+SCSIS=0
+VIRTS=0
+
+function add_if_none {
+  case "${S_DRIVES}" in
+    *${1}*) break;;
+         *) S_DRIVES="${S_DRIVES} -device ${1}"
+  esac
+}
+
+function add_drive {
+  DISC_IMG=${1%%:*}
+  INTERFACE=${1##*:}
+
+  case ${DISC_IMG##*.} in
+    dsk|DSK) DVC_TYPE='fd'; DVC_FRMT='raw';   MEDIATYPE='floppy';;
+      fd|fd) DVC_TYPE='fd'; DVC_FRMT='raw';   MEDIATYPE='floppy';;
+    iso|ISO) DVC_TYPE="cd"; DVC_FRMT='raw';   MEDIATYPE='cdrom';;
+        img) DVC_TYPE='hd'; DVC_FRMT='raw';   MEDIATYPE='disk';;
+       luks) DVC_TYPE='hd'; DVC_FRMT='luks';  MEDIATYPE='disk';;
+       qcow) DVC_TYPE='hd'; DVC_FRMT='guess'; MEDIATYPE='disk';;
+        qed) DVC_TYPE='hd'; DVC_FRMT='qed';   MEDIATYPE='disk';;
+        vdi) DVC_TYPE='hd'; DVC_FRMT='vdi';   MEDIATYPE='disk';;
+       vhdx) DVC_TYPE='hd'; DVC_FRMT='vhdx';  MEDIATYPE='disk';;
+       vmdk) DVC_TYPE='hd'; DVC_FRMT='vmdk';  MEDIATYPE='disk';;
+        vpc) DVC_TYPE='hd'; DVC_FRMT='vpc';   MEDIATYPE='disk';;
+          *) DVC_TYPE='hd'; DVC_FRMT='raw';   MEDIATYPE='disk';;
+  esac
+
+  case ${INTERFACE} in
+    floppy)
+      S_DRIVES="${S_DRIVES} -drive id=floppy${FLOPS},media=${MEDIATYPE},file=${DISC_IMG},cache=none,if=floppy,bus=$((FLOPS/2)),unit=$((FLOPS%2))"
+      (( FLOPS++ ));;
+    ide)
+      S_DRIVES="${S_DRIVES} -drive id=pata${PATAS},media=${MEDIATYPE},file=${DISC_IMG},cache=none,if=ide,bus=$((PATAS/2)),unit=$((PATAS%2))"
+      (( PATAS++ ));;
+    ahci)
+      S_DRIVES="${S_DRIVES} -device ide-${DVC_TYPE},bus=ide.${SATAS},drive=sata${SATAS} -drive id=sata${SATAS},media=${MEDIATYPE},file=${DISC_IMG},cache=none,if=none"
+      (( SATAS++ ));;
+    scsi)
+      S_DRIVES="${S_DRIVES} -device scsi-${DVC_TYPE},bus=scsi.${SCSIS},drive=scsi${SCSIS} -drive id=scsi${SCSIS},media=${MEDIATYPE},file=${DISC_IMG},cache=none,if=scsi,bus=0,unit=${SCSIS}"
+      (( SCSIS++ ));;
+    virtio)
+      S_DRIVES="${S_DRIVES} -drive id=vd${VIRTS},media=${MEDIATYPE},file=${DISC_IMG},cache=none,if=virtio"
+      (( VIRTS++ ));;
+  esac
+  [ "${DVC_FRMT}" = "guess" ] || S_DRIVES="${S_DRIVES},format=${DVC_FRMT}"
+}
+
+USEACCEL=true
 BASE='-nodefaults -parallel none -serial none'
-MACHN='type=q35'
-KEYBD='-device virtio-keyboard-pci'
-MOUSE='-device virtio-tablet-pci'
-BALLN='-device virtio-balloon-pci'
-XDISP=50
-VIDEO='virtio-vga'
-DSPLY="vnc=localhost:${XDISP}"
-IFACE='virtio'
-NTCRD='virtio-net-pci'
-VLNCH=true
-VCORS=$(( $(( $(getconf _NPROCESSORS_ONLN) + 1)) / 2 ))
-FRMWR='BIOS'
+MACHINE='type=q35'
+FIRMAWRE='BIOS'
 
-QXVSD='-device virtio-serial-pci'
-QXVSP='-device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0'
-QXCHR='-chardev spicevmc,id=spicechannel0,name=vdagent'
+#CPU
+VIRT_CPU="host"
 
-while getopts "a:b:c:d:ef:ghiklm:np:qrs:t:uv:wx:" opt; do
-  case "${opt}" in
-    a) FDIMG="${OPTARG}"               ;;
-    b) BTISO="${OPTARG}"               ;;
-    c) VCORS="${OPTARG}"               ;;
-    d) DRISO="${OPTARG}"               ;;
-    e) FRMWR='UEFI'                    ;;
-    f) PRTFW="${PRTFW},hostfwd=tcp::$(echo "${OPTARG}" | cut -d: -f1)-:$(echo "${OPTARG}" | cut -d: -f2)" ;;
-    g) DSPLY='gtk'                     ;;
-    h) show_help                       ; exit 0    ;;
-    i) IFACE='ide'                     ;;
-    k) W2KHK='-win2k-hack'             ;;
-    l) KEYBD=''; MOUSE=''; NTCRD='pcnet'; IFACE='ide'; BALLN=''; MACHN='type=pc'; VIDEO='cirrus-vga';;
-    m) RAMSZ="${OPTARG}"               ;;
-    n) NTCRD='pcnet'                   ;;
-    p) PRIDR="${OPTARG}"               ;;
-    q) VIDEO='qxl-vga' ; DSPLY="spice-app -spice port=60${XPORT},disable-ticketing ${QXVSD} ${QXVSP} ${QXCHR}" ;;
-    s) SCNDR="${OPTARG}"               ;;
-    t) TRMNL="${OPTARG}"               ;;
-    u) MOUSE='-device virtio-mouse-pci';;
-    v) VIODR="${OPTARG}"               ;;
-    w) VLNCH=false                     ;;
-    x) XDISP="${OPTARG}"               ;;
-    '?') show_help >&2 && exit 1       ;;
+# DISPLAY
+DSPLYPRT=50
+VDISPLAY=vnc
+V_LAUNCH=true
+
+# QXL OPTIONS
+QXL_VSPD='-device virtio-serial-pci'
+QXL_SPRT='-device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0'
+QXL_CHAR='-chardev spicevmc,id=spicechannel0,name=vdagent'
+QXLDSPLY="spice-app -spice port=60${DSPLYPRT},disable-ticketing ${QXL_VSPD} ${QXL_SPRT} ${QXL_CHAR}"
+
+# DEVICES
+VBALLOON='virtio-balloon-pci'
+POINTING='virtio-tablet-pci'
+NET_CARD='virtio-net-pci'
+SND_CARD=''
+GPU_CARD='VGA'
+
+while [ ${#} -gt 0 ]; do
+  case "${1}" in
+      --cores) VIRTCORS="${2}"            ; shift 2;;
+        --cpu) VIRT_CPU="${2}"            ; shift 2;;
+     --daemon) V_LAUNCH=false             ; shift 1;;
+      --drive) add_drive "${2}"           ; shift 2;;
+        --efi) FIRMWARE="UEFI${2}"        ; shift 2;;
+    --forward) PORT_FWD="${PORT_FWD},hostfwd=tcp::$(echo "${2}" | cut -d: -f1)-:$(echo "${2}" | cut -d: -f2)"; shift 2;;
+        --gtk) VDISPLAY='gtk'             ; shift 1;;
+        --gpu) GPU_CARD="${2}"            ; shift 2;;
+    -h|--help) show_help                  ; exit 0;;
+     --initrd) BOOTIRFS="${2}"            ; shift 2;;
+     --kernel) BOOTKRNL="${2}"            ; shift 2;;
+     --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="athlon"; BASE="${BASE} -device piix4-usb-uhci -device usb-tablet"; shift 1;;
+      --mouse) POINTING=''                ; shift 1;;
+       --ne2k) NET_CARD='ne2k_pci'        ; shift 1;;
+      --nohvf) USEACCEL=false             ; shift 1;;
+      --nokvm) USEACCEL=false             ; shift 1;;
+        --ram) RAM_SIZE="${2}"            ; shift 2;;
+      --pcnet) NET_CARD='pcnet'           ; shift 1;;
+        --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
+           -r) POINTING=''; GPU_CARD='VGA'; NET_CARD='pcnet'; VBALLOON=''; shift 1;;
+      --sound) SND_CARD='hda-output'      ; shift 1;;
+       --term) TERMINAL="${2}"            ; shift 2;;
+      --win2k) W2K_HACK='-win2k-hack'     ; shift 1;;
+      --xport) DSPLYPRT="${OPTARG}"       ; shift 2;;
+            *) echo "Unkonw argument ${1}"; show_help >&2; exit 1;;
   esac
 done
-
 shift $((OPTIND-1))
 
 [ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
 
-if [ "${FRMWR}" = "UEFI" ]; then
-  UEFI="$(find /usr -type f -name 'OVMF_CODE.fd' | grep '64')"
-  case "${UEFI}" in
-    *OVMF_CODE.fd) UEFI="-bios ${UEFI}" ;;
+if [ "${FIRMWARE:0:4}" = "UEFI" ]; then
+  printf '%s' 'Finding UEFI firmware...'
+
+  # Try to use locate, it's faster
+
+  if command -v plocate > /dev/null; then
+    FRMWRFIL="$(plocate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
+  elif command -v mlocate > /dev/null; then
+    FRMWRFIL="$(mlocate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
+  elif command -v locate > /dev/null; then
+    FRMWRFIL="$(locate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
+  fi
+
+  # Maybe the system doesn't have a locate?
+
+  if [ -z "${FRMWRFIL}" ]; then
+    FRMWRFIL="$(find /usr -type f -wholename '/usr/*${FIRMWARE: -2}/OVMF_CODE.fd')"
+  fi
+
+  case "${FRMWRFIL}" in
+    *OVMF_CODE.fd) UEFI_OPT="-bios ${FRMWRFIL}"; echo "${FRMWRFIL}" ;;
     *) echo 'OVMF_CODE.fd not found' && exit 1 ;;
   esac
 fi
 
-BTPRM="-boot c"
-[ -n "${BTISO}" ] && BTPRM="-boot d"
-[ -n "${BTISO}" ] && [ -n "${SCNDR}" -o -n "${VIODR}" ] && BTPRM="-boot e"
-[ -n "${FDIMG}" ] && BTPRM="-boot a"
-
-LCV=0
-for DRIVE in "${FDIMG}" "${PRIDR}" "${SCNDR}" "${VIODR}" "${BTISO}" "${DRISO}"; do
-  LCV=$((LCV+1))
-  if [ -n "${DRIVE}" ]; then
-    case ${LCV} in
-      1) DRVID="fd0"; MTYPE="floppy"; DRVIF="floppy"; IFSLT="bus=0,unit=0";;
-      2) DRVID="hd0"; MTYPE="disk"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=0,unit=0" || IFSLT="";;
-      3) DRVID="hd1"; MTYPE="disk"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=0,unit=1" || IFSLT="";;
-      4) DRVID="vd1"; MTYPE="disk"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=0,unit=1" || IFSLT="";;
-      5) DRVID="cd0"; MTYPE="cdrom"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=1,unit=0" || IFSLT=""; [ "${IFACE}" = "virtio" ] && DRVIF="scsi";;
-      6) DRVID="cd1"; MTYPE="cdrom"; DRVIF="${IFACE}"; [ "${IFACE}" = "ide" ] && IFSLT="bus=1,unit=0" || IFSLT=""; [ "${IFACE}" = "virtio" ] && DRVIF="scsi";;
-    esac
-
-    SDRVS="${SDRVS} -drive id=${DRVID},media=${MTYPE},file=${DRIVE},cache=none,if=${DRVIF}"
-    [ -n "${IFSLT}" ] && SDRVS="${SDRVS},${IFSLT}"
-    echo "${DRIVE}" | grep -q '[\.img\|\.iso]$' > /dev/null && SDRVS="${SDRVS},format=raw"
-    chown qemu ${DRIVE}
-  fi
+for DEVICE in "${GPU_CARD}" "${POINTING}" "${SND_CARD}" "${VBALLOON}"; do
+  [ -n "${DEVICE}" ] && DEVICES="${DEVICES} -device ${DEVICE}"
 done
+
+case "${S_DRIVES}" in
+  *floppy*) DRIVES="${BOOT_OPT}a";;
+   *cdrom*) BOOT_OPT="${BOOT_OPT}d";;
+esac
+
+if [ -n "${BOOTKRNL}" ] && [ -n "${BOOTIRFS}" ]; then
+  BOOTPARM="-kernel ${BOOTKRNL} -initrd ${BOOTIRFS}"
+else
+  BOOTPARM="-boot menu=on"
+fi
+
+lscpu | grep -q topoext && VIRT_CPU="${VIRT_CPU},topoext"
+[ -z "${VIRTCORS}" ] && VIRTCORS=$(( ($(getconf _NPROCESSORS_ONLN)+1)/2 ))
 
 case "$(uname)" in
   Linux)
-    ACCEL='-enable-kvm'
-    MACHN="${MACHN},accel=kvm"
-    VNCMD="vncviewer :${XPORT}"
+    ${USEACCEL} && KVMACCEL='-enable-kvm' && MACHINE="${MACHINE},accel=kvm"
+    VNCMD="vncviewer :${DSPLYPRT}"
     ;;
   Darwin)
-    MACHN="${MACHN},accel=hvf"
-    VNCMD="open vnc://localhost:59${XPORT}"
+    ${USEACCEL} && MACHINE="${MACHINE},accel=hvf"
+    VNCMD="open vnc://localhost:59${DISPLYPRT}"
     ;;
 esac
 
-case "$((VCORS % 2))" in
-  0) THRDS=2 ;;
-  1) THRDS=1 ;;
-esac
-
-PCORS="$((VCORS / THRDS))"
-
-if [ -n "${BTISO}" -o -n "${DRISO}" ] && [ "${IFACE}" = "virtio" ]; then
-  VSCSI="-device virtio-scsi-pci,id=scsi0"
-  [ -n "${BTISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.0,drive=cd0"
-  [ -n "${DRISO}" ] && VSCSI="${VSCSI} -device scsi-cd,bus=scsi0.1,drive=cd1"
+if [ "$(lscpu | grep 'Thread(s) per core' | sed 's/.*: *//g')" = "2" ]; then
+  [ "$((VIRTCORS % 2))" = "0" ] && VTHREADS=2 || VTHREADS=1
+else
+  VTHREADS=1
 fi
 
-if ${VLNCH}; then
-  case "${DSPLY}" in
+VMCORES="$((VIRTCORS / VTHREADS))"
+
+if ${V_LAUNCH}; then
+  case "${VDISPLAY}" in
     *vnc*)
-      sh -c "sleep 1; su -c \"DISPLAY=${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
+      VDISPLAY="egl-headless -vnc :${DSPLYPRT}"
+      sh -c "sleep 1; su -c DISPLAY=\"${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
 #   *spice*)
 #     command -v spicy > /dev/null 2>&1 && CMMND="spicy -h localhost -p 60${XPORT}"
 #     command -v remote-viewer > /dev/null 2>&1 && CMMND="remote-viewer spice://localhost:60${XPORT}"
 #     sh -c "sleep 1; su -c 'DISPLAY=${DISPLAY} ${CMMND} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
   esac
-else
-  echo "VIDEO MODE: ${VIDEO}"
 fi
 
-TMPFL="$(mktemp)"
+TEMPFILE="$(mktemp)"
 
 printf '\n>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
 >>> USE system_powerdown TO SEND ACPI POWER BUTTON SIGNAL TO VM
 >>> USE quit TO TELL QEMU TO STOP IMMEDIATELY
->>> PRESS CTRL+C TO FORCE-QUIT QEMU\n\n' > "${TMPFL}"
+>>> PRESS CTRL+C TO FORCE-QUIT QEMU\n\n' > "${TEMPFILE}"
 
-QCMND="qemu-system-x86_64 -runas qemu ${ACCEL} ${UEFI} -m ${RAMSZ} \
-  -machine ${MACHN} ${BASE} ${W2KHK} -cpu host,+topoext \
-  -smp cores=${VCORS},sockets=1,cores=${PCORS},threads=${THRDS} \
-  -monitor stdio -device ${VIDEO} -display ${DSPLY} \
-  -nic user,model=${NTCRD}${PRTFW} \
-  ${KEYBD} ${MOUSE} ${BALLN} \
-  ${SDRVS} ${VSCSI} ${BTPRM}"
+QEMU_CMD="qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
+  -machine ${MACHINE} ${BASE} ${W2K_HACK} -cpu ${VIRT_CPU} \
+  -smp cores=${VMCORES},threads=${VTHREADS} \
+  -monitor stdio -display ${VDISPLAY} \
+  -nic user,model=${NET_CARD}${PORT_FWD} \
+  ${DEVICES} ${S_DRIVES} ${BOOTPARM}"
 
 
-if [ -n "${TRMNL}" ]; then
+if [ -n "${TERMINAL}" ]; then
   set -x
-  ${TRMNL} -e "${QCMND}" &
+  ${TERMINAL} -e "${QEMU_CMD}" &
+  set +x
   sleep 2
 else
-  [ -t 1 ] && cat "${TMPFL}"
-  eval "set -x; ${QCMND}"
+  [ -t 1 ] && cat "${TEMPFILE}"
+  rm "${TEMPFILE}"
+  eval "set -x; ${QEMU_CMD}"
 fi
-
-rm "${TMPFL}"
