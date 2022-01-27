@@ -191,7 +191,7 @@ for DEVICE in "${GPU_CARD}" "${POINTING}" "${SND_CARD}" "${VBALLOON}"; do
 done
 
 case "${S_DRIVES}" in
-  *floppy*) DRIVES="${BOOT_OPT}a";;
+  *floppy*) BOOT_OPT="${BOOT_OPT}a";;
    *cdrom*) BOOT_OPT="${BOOT_OPT}d";;
 esac
 
