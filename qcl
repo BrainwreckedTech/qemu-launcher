@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # NOTES:
 # - Use VNC or QXL/SPICE so qemu can run as another user
