@@ -68,9 +68,9 @@ function add_drive {
 
   case ${DISC_IMG##*.} in
     dsk|DSK) DVC_TYPE='fd'; DVC_FRMT='raw';   MEDIATYPE='floppy';;
-      fd|fd) DVC_TYPE='fd'; DVC_FRMT='raw';   MEDIATYPE='floppy';;
+      fd|FD) DVC_TYPE='fd'; DVC_FRMT='raw';   MEDIATYPE='floppy';;
     iso|ISO) DVC_TYPE="cd"; DVC_FRMT='raw';   MEDIATYPE='cdrom';;
-        img) DVC_TYPE='hd'; DVC_FRMT='raw';   MEDIATYPE='disk';;
+    img|IMG) DVC_TYPE='hd'; DVC_FRMT='raw';   MEDIATYPE='disk';;
        luks) DVC_TYPE='hd'; DVC_FRMT='luks';  MEDIATYPE='disk';;
        qcow) DVC_TYPE='hd'; DVC_FRMT='guess'; MEDIATYPE='disk';;
         qed) DVC_TYPE='hd'; DVC_FRMT='qed';   MEDIATYPE='disk';;
