@@ -211,7 +211,7 @@ case "$(uname)" in
     ;;
   Darwin)
     ${USEACCEL} && MACHINE="${MACHINE},accel=hvf"
-    VNCMD="open vnc://localhost:59${DISPLYPRT}"
+    VNCMD="open vnc://localhost:59${DSPLYPRT}"
     ;;
 esac
 
