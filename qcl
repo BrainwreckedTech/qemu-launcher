@@ -104,7 +104,7 @@ function add_drive {
 USEACCEL=true
 BASE='-nodefaults -parallel none -serial none'
 MACHINE='type=q35'
-FIRMAWRE='BIOS'
+FIRMWARE='BIOS'
 
 #CPU
 VIRT_CPU="host"
