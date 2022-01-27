@@ -57,7 +57,7 @@ VIRTS=0
 
 function add_if_none {
   case "${S_DRIVES}" in
-    *${1}*) break;;
+    *${1}*) return;;
          *) S_DRIVES="${S_DRIVES} -device ${1}"
   esac
 }
