@@ -32,6 +32,7 @@ Network options:
       --forward <port:port> Forward host's <port> to guest's <port>
       --pcnet               Use an AMD PCNet NIC instead of VirtIO
       --ne2k                Use an NE2000-compatible NIC instead of VirtIO
+      --rtl8139             Use a Realtek 8139 NIC instead of VirtIO
 
 Display options:
 
@@ -147,6 +148,7 @@ while [ ${#} -gt 0 ]; do
       --nokvm) USEACCEL=false             ; shift 1;;
         --ram) RAM_SIZE="${2}"            ; shift 2;;
       --pcnet) NET_CARD='pcnet'           ; shift 1;;
+    --rtl8139) NET_CARD='rtl8139'         ; shift 1;;
         --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
            -r) POINTING=''; GPU_CARD='VGA'; NET_CARD='pcnet'; VBALLOON=''; shift 1;;
       --sound) SND_CARD='hda-output'      ; shift 1;;
