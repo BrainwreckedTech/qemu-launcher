@@ -87,13 +87,15 @@ function add_drive {
       S_DRIVES="${S_DRIVES} -drive id=floppy${FLOPS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=floppy,bus=$((FLOPS/2)),unit=$((FLOPS%2))"
       (( FLOPS++ ));;
     ide)
-      S_DRIVES="${S_DRIVES} -drive id=pata${PATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=ide,bus=$((PATAS/2)),unit=$((PATAS%2))"
+      S_DRIVES="${S_DRIVES} -drive id=pata${PATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=ide,bus=$((PATAS)),unit=0"
       (( PATAS++ ));;
     ahci)
-      S_DRIVES="${S_DRIVES} -device ide-${DVC_TYPE},bus=ide.${SATAS},drive=sata${SATAS} -drive id=sata${SATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=none"
+      [ "${SATAS}" -eq 0 ] && S_DRIVES="${S_DRIVES} -device ahci,id=ahci"
+      S_DRIVES="${S_DRIVES} -device ide-${DVC_TYPE},bus=ahci.${SATAS},drive=sata${SATAS} -drive id=sata${SATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=none"
       (( SATAS++ ));;
     scsi)
-      S_DRIVES="${S_DRIVES} -device scsi-${DVC_TYPE},bus=scsi.${SCSIS},drive=scsi${SCSIS} -drive id=scsi${SCSIS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=none,bus=0,unit=${SCSIS}"
+      [ "${SCSIS}" -eq 0 ] && S_DRIVES="${S_DRIVES} -device virtio-scsi-pci,id=scsi0"
+      S_DRIVES="${S_DRIVES} -device scsi-${DVC_TYPE},bus=scsi0.0,drive=scsi${SCSIS} -drive id=scsi${SCSIS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=none,bus=0,unit=${SCSIS}"
       (( SCSIS++ ));;
     virtio)
       S_DRIVES="${S_DRIVES} -drive id=vd${VIRTS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=virtio"
