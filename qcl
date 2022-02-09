@@ -90,6 +90,7 @@ function add_drive {
       S_DRIVES="${S_DRIVES} -drive id=pata${PATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=ide,bus=$((PATAS/2)),unit=$((PATAS%2))"
       (( PATAS++ ));;
     ahci)
+      [ "${MACHINE}" == 'type=pc' ] && echo 'Cannot use ahci on legacy hardware -- only floppy, ide, and scsi' && exit 1
       [ "${SATAS}" -eq 0 ] && S_DRIVES="${S_DRIVES} -device ahci,id=ahci"
       S_DRIVES="${S_DRIVES} -device ide-${DVC_TYPE},bus=ahci.${SATAS},drive=sata${SATAS} -drive id=sata${SATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=none"
       (( SATAS++ ));;
@@ -98,6 +99,7 @@ function add_drive {
       S_DRIVES="${S_DRIVES} -device scsi-${DVC_TYPE},bus=scsi0.0,drive=scsi${SCSIS} -drive id=scsi${SCSIS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=none,bus=0,unit=${SCSIS}"
       (( SCSIS++ ));;
     virtio)
+      [ "${MACHINE}" == 'type=pc' ] && echo 'Cannot use virtio on legacy hardware -- only floppy, ide, and scsi' && exit 1
       S_DRIVES="${S_DRIVES} -drive id=vd${VIRTS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=virtio"
       (( VIRTS++ ));;
   esac
