@@ -154,7 +154,6 @@ while [ ${#} -gt 0 ]; do
       --pcnet) NET_CARD='pcnet'           ; shift 1;;
     --rtl8139) NET_CARD='rtl8139'         ; shift 1;;
         --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
-           -r) POINTING=''; GPU_CARD='VGA'; NET_CARD='pcnet'; VBALLOON=''; shift 1;;
       --sound) SND_CARD='hda-output'      ; shift 1;;
        --term) TERMINAL="${2}"            ; shift 2;;
       --win2k) W2K_HACK='-win2k-hack'     ; shift 1;;
