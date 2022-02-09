@@ -145,7 +145,7 @@ while [ ${#} -gt 0 ]; do
     -h|--help) show_help                  ; exit 0;;
      --initrd) BOOTIRFS="${2}"            ; shift 2;;
      --kernel) BOOTKRNL="${2}"            ; shift 2;;
-     --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="athlon"; BASE="${BASE} -device piix4-usb-uhci -device usb-tablet"; shift 1;;
+     --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="athlon"; BASE="${BASE} -device piix4-usb-uhci"; shift 1;;
       --mouse) POINTING=''                ; shift 1;;
        --ne2k) NET_CARD='ne2k_pci'        ; shift 1;;
       --nohvf) USEACCEL=false             ; shift 1;;
