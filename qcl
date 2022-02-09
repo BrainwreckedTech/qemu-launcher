@@ -87,7 +87,7 @@ function add_drive {
       S_DRIVES="${S_DRIVES} -drive id=floppy${FLOPS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=floppy,bus=$((FLOPS/2)),unit=$((FLOPS%2))"
       (( FLOPS++ ));;
     ide)
-      S_DRIVES="${S_DRIVES} -drive id=pata${PATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=ide,bus=$((PATAS)),unit=0"
+      S_DRIVES="${S_DRIVES} -drive id=pata${PATAS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=ide,bus=$((PATAS/2)),unit=$((PATAS%2))"
       (( PATAS++ ));;
     ahci)
       [ "${SATAS}" -eq 0 ] && S_DRIVES="${S_DRIVES} -device ahci,id=ahci"
