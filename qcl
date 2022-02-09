@@ -21,7 +21,7 @@ System options:
       --mouse               Use USB mouse instead of tablet device
       --gpu <card>          Specify the GPU_CARD device to use
 
-    *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + drives on IDE (no VirtIO)
+    *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + no VirtIO
 
 Drive options:
 
