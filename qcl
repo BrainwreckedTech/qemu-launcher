@@ -115,6 +115,15 @@ FIRMWARE='BIOS'
 VIRT_CPU="host"
 VIRTCORS=$((($(getconf _NPROCESSORS_ONLN)+1)/2))
 
+#RAM (default if not specified)
+for MEMORIES in /sys/devices/system/memory/memory*; do
+  if [[ $(< "${MEMORIES}/online") == 1 ]]; then
+    ((TOTALRAM+=0x$(cat /sys/devices/system/memory/block_size_bytes)))
+  fi
+done
+POWEROF2="$(awk "BEGIN {print int(log(TOTALRAM/3)/log(2))}")"
+RAM_SIZE="$((2**POWEROF2))"
+
 # DISPLAY
 DSPLYPRT=50
 VDISPLAY=vnc
