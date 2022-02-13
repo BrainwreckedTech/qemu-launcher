@@ -157,8 +157,8 @@ QXLDSPLY="spice-app -spice port=60${DSPLYPRT},disable-ticketing ${QXL_VSPD} ${QX
 VBALLOON='virtio-balloon-pci'
 POINTING='virtio-tablet-pci'
 NET_CARD='virtio-net-pci'
-SND_CARD=''
 SCSICARD='virtio-scsi-pci'
+SND_CARD='hda-output'
 GPU_CARD='VGA'
 
 while [ ${#} -gt 0 ]; do
