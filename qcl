@@ -135,8 +135,8 @@ for MEMORIES in /sys/devices/system/memory/memory*; do
     ((TOTALRAM+=0x$(cat /sys/devices/system/memory/block_size_bytes)))
   fi
 done
-POWEROF2="$(awk "BEGIN {print int(log(TOTALRAM/3)/log(2))}")"
-RAM_SIZE="$((2**POWEROF2))"
+POWEROF2="$(awk "BEGIN {print int(log(${TOTALRAM}/3)/log(2))}")"
+RAM_SIZE="$((2**POWEROF2/1024**2))"
 
 # DISPLAY
 DSPLYPRT=50
