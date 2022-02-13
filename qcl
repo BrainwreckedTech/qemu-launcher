@@ -82,6 +82,20 @@ function add_drive {
           *) DVC_TYPE='hd'; DVC_FRMT='raw';   MEDIATYPE='disk';;
   esac
 
+  if [ "${INTERFACE}" == "${DISC_IMG}" ]; then
+    printf 'Interface not specified for %s - ' "${DISC_IMG}"
+    if [ "${MEDIATYPE}" == 'floppy' ]; then
+      INTERFACE='floppy'
+    elif [ -n "${VBALLON}" ]; then
+      INTERFACE='virtio'
+    elif [[ "${MACHINE}" =~ q35 ]]; then
+      INTERFACE='ahci'
+    elif [[ "${MACHINE}" =~ pc ]]; then
+      INTERFACE='ide'
+    fi
+    printf 'guessed %s\n' "${INTERFACE}"
+  fi
+
   case ${INTERFACE} in
     floppy)
       S_DRIVES="${S_DRIVES} -drive id=floppy${FLOPS},media=${MEDIATYPE},file='${DISC_IMG}',cache=none,if=floppy,bus=$((FLOPS/2)),unit=$((FLOPS%2))"
