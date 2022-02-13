@@ -266,6 +266,16 @@ printf '\n>>> USE send_key TO SEND KEY COMBOS TO VM THAT THE HOST GRABS
 >>> USE quit TO TELL QEMU TO STOP IMMEDIATELY
 >>> PRESS CTRL+C TO FORCE-QUIT QEMU\n\n' > "${TEMPFILE}"
 
+if [ "${NET_CARD}" == 'pcnet' ] || [[ "${NET_CARD}" =~ 'ne2k' ]] || [ -z "${NET_CARD}" ]; then
+  if [ "${VIRT_CPU}" == '486' ] || [[ "${VIRT_CPU}" =~ 'pentium' ]]; then
+    if [ "${SND_CARD}" == 'sb16' ] || [ -z "${SND_CARD}" ]; then
+      if [[ ! "${POINTING}" =~ 'tablet' ]]; then
+        printf '>>> FOR WINDOWS 9X, ⚠PLUG & PLAY BIOS = PCI BUS\n\n' >> "${TEMPFILE}"
+      fi
+    fi
+  fi
+fi
+
 QEMU_CMD="qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
   -machine ${MACHINE} ${BASE} ${W2K_HACK} -cpu ${VIRT_CPU} \
   -smp cores=${VMCORES},threads=${VTHREADS} \
