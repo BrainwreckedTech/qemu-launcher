@@ -19,7 +19,6 @@ System options:
       --sound               Enable sound
       --term <term-bin>     Launch QEMU in <term-bin> in background
       --mouse               Use USB mouse instead of tablet device
-      --gpu <card>          Specify the GPU_CARD device to use
 
     *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + no VirtIO
 
@@ -29,6 +28,17 @@ Drive options:
 
       --drive <file>:<interface>
             <interface> is one of floppy, ide, scsi, ahci, or virtio
+
+GPU options
+
+      --gpu <qemu-gpu>
+
+         <qemu-gpu> can be anything QEMU accepts.
+         Common GPUs relevant to QCL are:
+
+            cirrus-vga      Cirrus Logic GD-5446
+            VGA             Standard VESA VGA device
+            vmware          VMWare SVGA device
 
 Network options:
 
