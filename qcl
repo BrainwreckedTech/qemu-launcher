@@ -18,7 +18,6 @@ System options:
       --ram <MiB>           Specify RAM available to VM
       --sound               Enable sound
       --term <term-bin>     Launch QEMU in <term-bin> in background
-      --mouse               Use USB mouse instead of tablet device
 
     *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + no VirtIO
 
@@ -28,6 +27,26 @@ Drive options:
 
       --drive <file>:<interface>
             <interface> is one of floppy, ide, scsi, ahci, or virtio
+
+Pointing device options:
+
+      --mouse <qemu-pointer>
+
+         <qemu-pointer> can be anything QEMU accepts, plus "PS/2"
+         Common pointers relevant to QCL are:
+
+            ps/2              The standard PS/2 QEMU normally presents the guest
+            usb-mouse         Standard USB mouse
+            usb-tablet        Standard USB tablet device
+            usb-wacom-tablet  QEMU PenPartner Tablet
+            vmmouse           ISA bus VM mouse
+
+        Additionally, there are VirtIO devices that can connect to either the
+        PCI bus (for guests that cannot use complete VirtIO) or the virtio-bus
+        (for full VirtIO utilization.)
+
+           virtio-mouse-pci    virtio-mouse-device
+           virtio-tablet-pci   virtio-tablet-device
 
 GPU options
 
@@ -209,7 +228,7 @@ while [ ${#} -gt 0 ]; do
      --kernel) BOOTKRNL="${2}"            ; shift 2;;
      --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="pentium3"; BASE="${BASE} -device piix4-usb-uhci"; shift 1;;
      --maxres) MAXDSIZE="${2}"            ; shift 2;;
-      --mouse) POINTING='usb-mouse'       ; shift 1;;
+      --mouse) POINTING="${2}"            ; shift 2;;
        --ne2k) NET_CARD='ne2k_pci'        ; shift 1;;
       --nohvf) USEACCEL=false             ; shift 1;;
       --nokvm) USEACCEL=false             ; shift 1;;
