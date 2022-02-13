@@ -123,11 +123,34 @@ function add_drive {
   [ "${DVC_FRMT}" = "guess" ] || S_DRIVES="${S_DRIVES},format=${DVC_FRMT}"
 }
 
-USEACCEL=true
+function set_vga_resolution {
+  [ "${GPU_CARD:0:3}" != "VGA" ] && return
+  if [ -z "${1}" ]; then
+    SERCHSTR='Display.*primary.*\n(\s+[0-9]+x[0-9]+.*\n)+'
+    PDISPRES=$(xrandr | grep -Pzo "${SERCHSTR}" | grep -a '\*' | grep -o '[0-9]\+x[0-9]\+')
+    MXHRZNTL="$(( "${PDISPRES%x*}" - 64 ))"
+    MXVERTCL="$(( "${PDISPRES#*x}" - 64 ))"
+  else
+     MXHRZNTL="${1%x*}"
+     MXVERTCL="${1#*x}"
+  fi
+
+  for DISP_RES in 1920x1080 1680x1050 1600x1200 1280x1024 1440x900 \
+                  1280x960 1360x768 1280x800 1280x720 1024x768 800x600 640x480; do
+    HORZ_RES="${DISP_RES%x*}"
+    VERT_RES="${DISP_RES#*x}"
+    [ $((HORZ_RES)) -gt "${MXHRZNTL}" ] || [ $((VERT_RES)) -gt "${MXVERTCL}" ] && continue
+    GPU_CARD="VGA,edid=on,xmax=${HORZ_RES},ymax=${VERT_RES}"
+    break
+  done
+}
+
+USEACCEL='true'
 BASE='-nodefaults -parallel none -serial none'
 MACHINE='type=q35'
 FIRMWARE='BIOS'
 ENABLESC='false'
+MAXDSIZE=''
 
 #CPU
 VIRT_CPU="host"
@@ -169,12 +192,13 @@ while [ ${#} -gt 0 ]; do
       --drive) add_drive "${2}"           ; shift 2;;
         --efi) FIRMWARE="UEFI${2}"        ; shift 2;;
     --forward) PORT_FWD="${PORT_FWD},hostfwd=tcp::$(echo "${2}" | cut -d: -f1)-:$(echo "${2}" | cut -d: -f2)"; shift 2;;
-        --gtk) VDISPLAY='gtk'             ; shift 1;;
         --gpu) GPU_CARD="${2}"            ; shift 2;;
+        --gtk) VDISPLAY='gtk'             ; shift 1;;
     -h|--help) show_help                  ; exit 0;;
      --initrd) BOOTIRFS="${2}"            ; shift 2;;
      --kernel) BOOTKRNL="${2}"            ; shift 2;;
      --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="pentium3"; BASE="${BASE} -device piix4-usb-uhci"; shift 1;;
+     --maxres) MAXDSIZE="${2}"            ; shift 2;;
       --mouse) POINTING='usb-mouse'       ; shift 1;;
        --ne2k) NET_CARD='ne2k_pci'        ; shift 1;;
       --nohvf) USEACCEL=false             ; shift 1;;
@@ -219,6 +243,8 @@ if [ "${FIRMWARE:0:4}" = "UEFI" ]; then
     *) echo 'OVMF_CODE.fd not found' && exit 1 ;;
   esac
 fi
+
+[ "${GPU_CARD}" == "VGA" ] && set_vga_resolution "${MAXDSIZE}"
 
 for DEVICE in "${GPU_CARD}" "${POINTING}" "${VBALLOON}"; do
   [ -n "${DEVICE}" ] && DEVICES="${DEVICES} -device ${DEVICE}"
