@@ -25,7 +25,10 @@ System options:
 
 Drive options:
 
-      --drive <file>:<floppy|ide|scsi|ahci|virtio>
+  If <interface> is not specified qcl will guess based extension and machine type
+
+      --drive <file>:<interface>
+            <interface> is one of floppy, ide, scsi, ahci, or virtio
 
 Network options:
 
