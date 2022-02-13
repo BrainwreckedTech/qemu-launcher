@@ -124,6 +124,7 @@ USEACCEL=true
 BASE='-nodefaults -parallel none -serial none'
 MACHINE='type=q35'
 FIRMWARE='BIOS'
+ENABLESC='false'
 
 #CPU
 VIRT_CPU="host"
@@ -179,7 +180,7 @@ while [ ${#} -gt 0 ]; do
       --pcnet) NET_CARD='pcnet'           ; shift 1;;
     --rtl8139) NET_CARD='rtl8139'         ; shift 1;;
         --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
-      --sound) SND_CARD='hda-output'      ; shift 1;;
+      --sound) ENABLESC='true'            ; shift 1;;
        --term) TERMINAL="${2}"            ; shift 2;;
       --win2k) W2K_HACK='-win2k-hack'     ; shift 1;;
       --xport) DSPLYPRT="${OPTARG}"       ; shift 2;;
@@ -216,10 +217,11 @@ if [ "${FIRMWARE:0:4}" = "UEFI" ]; then
   esac
 fi
 
-for DEVICE in "${GPU_CARD}" "${POINTING}" "${SND_CARD}" "${VBALLOON}"; do
+for DEVICE in "${GPU_CARD}" "${POINTING}" "${VBALLOON}"; do
   [ -n "${DEVICE}" ] && DEVICES="${DEVICES} -device ${DEVICE}"
 done
 
+${ENABLESC} && DEVICES="${DEVICES} -device ${SND_CARD}"
 
 if [ -n "${BOOTKRNL}" ] && [ -n "${BOOTIRFS}" ]; then
   BOOTPARM="-kernel ${BOOTKRNL} -initrd ${BOOTIRFS}"
