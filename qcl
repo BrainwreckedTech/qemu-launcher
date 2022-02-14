@@ -10,8 +10,6 @@ usage: ${0} [- options...]
 System options:
 
    --nokvm|--nohvf          Disable KVM/HVF accelleration
-   --cpu <cpu>              Specify the CPU to emulate
-   --cores                  Specify number of cores (default = [cores+1]/2)
    --efi <bits>             Boot using <bits>-bit UEFI instead of BIOS
    --win2k                  Enable Win2K hack (solves disk full bug, slows IDE)
    --legacy                 Use legacy hardware*
@@ -20,6 +18,20 @@ System options:
    --term <term-bin>        Launch QEMU in <term-bin> in background
 
     *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + no VirtIO
+
+CPU options:
+
+   --cores <n>              Emulate <n> cores.  Default is ([cores+2]/3)
+   --cpu <cpu>              Emulate <cpu> model.  Default is host.
+
+      <cpu> is one of the following:
+
+      486|80486          opteron            core-gen1|nehalem
+      pentium            core2duo           westmere
+      pentium2           atom64|denverton   core-gen2|sandybridge
+      pentium3                              core-gen3|ivybridge
+      pentium4|coreduo                      core-gen4|haswell
+      atom32|n270                           core-gen5|broadwell
 
 Drive options:
 
@@ -282,6 +294,36 @@ if [ "${FIRMWARE:0:4}" = "UEFI" ]; then
 fi
 
 [ "${GPU_CARD}" == "VGA" ] && set_vga_resolution "${MAXDSIZE}"
+
+case "${VIRT_CPU}" in
+          486) true;;
+        80486) VIRT_CPU='486';;
+      pentium) true;;
+     pentium2) true;;
+     pentium3) true;;
+     pentium4) VIRT_CPU='coreduo';;
+      coreduo) true;;
+      opteron) VIRT_CPU='Opteron_G1';;
+     core2duo) true;;
+       penryn) VIRT_CPU='Penryn';;
+         n270) true;;
+       atom32) VIRT_CPU='n270';;
+    denverton) VIRT_CPU='Denverton';;
+       atom64) VIRT_CPU='Denverton';;
+      nehalem) VIRT_CPU='Nahelem-IBRS';;
+    core-gen1) VIRT_CPU='Nahelem-IBRS';;
+     westmere) VIRT_CPU='Westmere-IBRS';;
+  sandybridge) VIRT_CPU='SandyBridge-IBRS';;
+    core-gen2) VIRT_CPU='SandyBridge-IBRS';;
+    ivybridge) VIRT_CPU='IvyBridge-IBRS';;
+    core-gen3) VIRT_CPU='IvyBridge-IBRS';;
+      haswell) VIRT_CPU='Haswell-noTSX-IBRS';;
+    core-gen4) VIRT_CPU='Haswell-noTSX-IBRS';;
+    broadwell) VIRT_CPU='Broadwell-noTSX-IBRS';;
+    core-gen5) VIRT_CPU='Broadwell-noTSX-IBRS';;
+         host) true;;
+            *) echo "Unknown CPU ${1}"; exit 1;;
+esac
 
 case "${NET_CARD}" in
     e1000) true;;
