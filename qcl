@@ -62,9 +62,18 @@ GPU options
 Network options:
 
       --forward <port:port> Forward host's <port> to guest's <port>
-      --pcnet               Use an AMD PCNet NIC instead of VirtIO
-      --ne2k                Use an NE2000-compatible NIC instead of VirtIO
-      --rtl8139             Use a Realtek 8139 NIC instead of VirtIO
+
+      --nic <qemu-nic>
+
+         <qemu-nic> can be one of the following
+
+            e1000       Intel Gigabit e1000-82540em
+            intel       An alias for e1000
+            pcnet       AMD PCnet Fast Ethernet Card
+            ne2k        An NE2000-compatible Ethernet Card
+            tulip       A DEC 21x4x-compatible Ethernet Card
+            realtek     An alias for rtl8139
+            rtl8139     Realtek 8139 Ethernet Card
 
 Display options:
 
@@ -229,12 +238,10 @@ while [ ${#} -gt 0 ]; do
      --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="pentium3"; BASE="${BASE} -device piix4-usb-uhci"; shift 1;;
      --maxres) MAXDSIZE="${2}"            ; shift 2;;
       --mouse) POINTING="${2}"            ; shift 2;;
-       --ne2k) NET_CARD='ne2k_pci'        ; shift 1;;
+        --nic) NET_CARD="${2}"            ; shift 2;;
       --nohvf) USEACCEL=false             ; shift 1;;
       --nokvm) USEACCEL=false             ; shift 1;;
         --ram) RAM_SIZE="${2}"            ; shift 2;;
-      --pcnet) NET_CARD='pcnet'           ; shift 1;;
-    --rtl8139) NET_CARD='rtl8139'         ; shift 1;;
         --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
       --sound) ENABLESC='true'            ; shift 1;;
        --term) TERMINAL="${2}"            ; shift 2;;
@@ -274,6 +281,17 @@ if [ "${FIRMWARE:0:4}" = "UEFI" ]; then
 fi
 
 [ "${GPU_CARD}" == "VGA" ] && set_vga_resolution "${MAXDSIZE}"
+
+case "${NET_CARD}" in
+    e1000) true;;
+    intel) NET_CARD='e1000';;
+    pcnet) true;;
+     ne2k) NET_CARD='ne2k_pci';;
+    tulip) true;;
+  realtek) NET_CARD='rtl8139';;
+  rtl8139) true;;
+        *) echo "Unknown NIC ${NET_CARD}" && exit 1;;
+esac
 
 for DEVICE in "${GPU_CARD}" "${POINTING}" "${VBALLOON}"; do
   [ -n "${DEVICE}" ] && DEVICES="${DEVICES} -device ${DEVICE}"
