@@ -75,9 +75,11 @@ GPU options
       <qemu-gpu> can be anything QEMU accepts.
       Common GPUs relevant to QCL are:
 
-         cirrus-vga         Cirrus Logic GD-5446
+         cirrus[-vga]       Cirrus Logic GD-5446
+         rage128pro         ATI Rage 128 Pro
+         radeon7000         ATI Radeon 7000
          VGA                Standard VESA VGA device
-         vmware             VMWare SVGA device
+         vmware[-svga]      VMWare SVGA device
 
 Network options:
 
@@ -323,6 +325,16 @@ case "${VIRT_CPU}" in
     core-gen5) VIRT_CPU='Broadwell-noTSX-IBRS';;
          host) true;;
             *) echo "Unknown CPU ${1}"; exit 1;;
+esac
+
+case "${GPU_CARD}" in
+       cirrus) GPU_CARD='cirrus-vga';;
+   cirrus-vga) true;;
+   rage128pro) GPU_CARD='ati-vga,model=rage128p';;
+   radeon7000) GPU_CARD='ati-vga,model=rv100';;
+         VGA*) true;;
+       vmware) GPU_CARD='vmware-svga';;
+  vmware-svga) true;;
 esac
 
 case "${NET_CARD}" in
