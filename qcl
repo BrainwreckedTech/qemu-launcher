@@ -30,6 +30,12 @@ Drive options:
       If <interface> is not specified then qcl will guess based on the file
       extension and machine type.
 
+      Note that ahci cannot be combined with type=pc.  There is no AHCI
+      controller for the i440FX chipset.  PIIX provides IDE (ATA) only.
+
+      SATA is only a connector type --  drives still used the ATA (IDE) protocol
+      until Intel released AHCI in 2002.
+
 Pointing device options:
 
    --mouse <qemu-pointer>
