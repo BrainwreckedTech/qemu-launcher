@@ -9,84 +9,86 @@ usage: ${0} [- options...]
 
 System options:
 
-      --nokvm|--nohvf       Disable KVM/HVF accelleration
-      --cpu <cpu>           Specify the CPU to emulate
-      --cores               Specify number of cores (default = [cores+1]/2)
-      --efi <bits>          Boot using <bits>-bit UEFI instead of BIOS
-      --win2k               Enable Win2K hack (solves disk full bug, slows IDE)
-      --legacy              Use legacy hardware*
-      --ram <MiB>           Specify RAM available to VM
-      --sound               Enable sound
-      --term <term-bin>     Launch QEMU in <term-bin> in background
+   --nokvm|--nohvf          Disable KVM/HVF accelleration
+   --cpu <cpu>              Specify the CPU to emulate
+   --cores                  Specify number of cores (default = [cores+1]/2)
+   --efi <bits>             Boot using <bits>-bit UEFI instead of BIOS
+   --win2k                  Enable Win2K hack (solves disk full bug, slows IDE)
+   --legacy                 Use legacy hardware*
+   --ram <MiB>              Specify RAM available to VM
+   --sound                  Enable sound
+   --term <term-bin>        Launch QEMU in <term-bin> in background
 
     *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + no VirtIO
 
 Drive options:
 
-  If <interface> is not specified qcl will guess based extension and machine type
+   --drive <file>:<interface>
 
-      --drive <file>:<interface>
-            <interface> is one of floppy, ide, scsi, ahci, or virtio
+      <interface> is one of floppy, ide, scsi, ahci, or virtio
+
+      If <interface> is not specified then qcl will guess based on the file
+      extension and machine type.
 
 Pointing device options:
 
-      --mouse <qemu-pointer>
+   --mouse <qemu-pointer>
 
-         <qemu-pointer> can be anything QEMU accepts, plus "PS/2"
-         Common pointers relevant to QCL are:
+      <qemu-pointer> can be anything QEMU accepts, plus "PS/2"
+      Common pointers relevant to QCL are:
 
-            ps/2              The standard PS/2 QEMU normally presents the guest
-            usb-mouse         Standard USB mouse
-            usb-tablet        Standard USB tablet device
-            usb-wacom-tablet  QEMU PenPartner Tablet
-            vmmouse           ISA bus VM mouse
+         ps/2               The standard PS/2 QEMU normally presents the guest
+         usb-mouse          Standard USB mouse
+         usb-tablet         Standard USB tablet device
+         usb-wacom-tablet   QEMU PenPartner Tablet
+         vmmouse            ISA bus VM mouse
 
-        Additionally, there are VirtIO devices that can connect to either the
-        PCI bus (for guests that cannot use complete VirtIO) or the virtio-bus
-        (for full VirtIO utilization.)
+      Additionally, there are VirtIO devices that can connect to either the
+      PCI bus (for guests that cannot use complete VirtIO) or the virtio-bus
+      (for full VirtIO utilization.)
 
-           virtio-mouse-pci    virtio-mouse-device
-           virtio-tablet-pci   virtio-tablet-device
+         virtio-mouse-pci    virtio-mouse-device
+         virtio-tablet-pci   virtio-tablet-device
 
 GPU options
 
-      --gpu <qemu-gpu>
+   --gpu <qemu-gpu>
 
-         <qemu-gpu> can be anything QEMU accepts.
-         Common GPUs relevant to QCL are:
+      <qemu-gpu> can be anything QEMU accepts.
+      Common GPUs relevant to QCL are:
 
-            cirrus-vga      Cirrus Logic GD-5446
-            VGA             Standard VESA VGA device
-            vmware          VMWare SVGA device
+         cirrus-vga         Cirrus Logic GD-5446
+         VGA                Standard VESA VGA device
+         vmware             VMWare SVGA device
 
 Network options:
 
-      --forward <port:port> Forward host's <port> to guest's <port>
+   --forward <port:port> Forward host's <port> to guest's <port>
 
-      --nic <qemu-nic>
+   --nic <qemu-nic>
 
-         <qemu-nic> can be one of the following
+      <qemu-nic> can be one of the following
 
-            e1000       Intel Gigabit e1000-82540em
-            intel       An alias for e1000
-            pcnet       AMD PCnet Fast Ethernet Card
-            ne2k        An NE2000-compatible Ethernet Card
-            tulip       A DEC 21x4x-compatible Ethernet Card
-            realtek     An alias for rtl8139
-            rtl8139     Realtek 8139 Ethernet Card
+         e1000              Intel Gigabit e1000-82540em
+         intel              An alias for e1000
+         pcnet              AMD PCnet Fast Ethernet Card
+         ne2k               An NE2000-compatible Ethernet Card
+         tulip              A DEC 21x4x-compatible Ethernet Card
+         realtek            An alias for rtl8139
+         rtl8139            Realtek 8139 Ethernet Card
 
 Display options:
 
-      The default is to start a VNC host and launch a VNC viewer.
+   The default is to start a VNC host and launch a VNC viewer.
 
-      --gtk             Use a GTK window (QEMU default)
-      --qxl <port>      Use QXL/SPICE instead of VNC
-      --daemon          Don't launch SPICE/vncviewer directly
-      --xport           Specify X11 listening port number
+   --gtk                    Use a GTK window (QEMU default)
+   --qxl <port>             Use QXL/SPICE instead of VNC
+   --daemon                 Don't launch SPICE/vncviewer directly
+   --xport                  Specify X11 listening port number
 
 Utilties:
 
-      -h|--help         This help text.
+   -h|--help                This help text.
 
 EndOfHelp
 }
