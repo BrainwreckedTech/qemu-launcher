@@ -312,8 +312,8 @@ case "${VIRT_CPU}" in
        atom32) VIRT_CPU='n270';;
     denverton) VIRT_CPU='Denverton';;
        atom64) VIRT_CPU='Denverton';;
-      nehalem) VIRT_CPU='Nahelem-IBRS';;
-    core-gen1) VIRT_CPU='Nahelem-IBRS';;
+      nehalem) VIRT_CPU='Nehalem-IBRS';;
+    core-gen1) VIRT_CPU='Nehalem-IBRS';;
      westmere) VIRT_CPU='Westmere-IBRS';;
   sandybridge) VIRT_CPU='SandyBridge-IBRS';;
     core-gen2) VIRT_CPU='SandyBridge-IBRS';;
@@ -324,7 +324,7 @@ case "${VIRT_CPU}" in
     broadwell) VIRT_CPU='Broadwell-noTSX-IBRS';;
     core-gen5) VIRT_CPU='Broadwell-noTSX-IBRS';;
          host) true;;
-            *) echo "Unknown CPU ${1}"; exit 1;;
+            *) echo "Unknown CPU ${VIRT_CPU}"; exit 1;;
 esac
 
 case "${GPU_CARD}" in
