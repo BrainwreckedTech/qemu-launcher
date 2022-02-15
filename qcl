@@ -188,8 +188,8 @@ function set_vga_resolution {
      MXVERTCL="${1#*x}"
   fi
 
-  for DISP_RES in 1920x1080 1680x1050 1600x1200 1280x1024 1440x900 \
-                  1280x960 1360x768 1280x800 1280x720 1024x768 800x600 640x480; do
+  for DISP_RES in 1920x1080 1680x1050 1280x1024 1600x960 1440x960 \
+                  1280x960 1280x800 1360x768 1280x720 1024x768 800x600 640x480; do
     HORZ_RES="${DISP_RES%x*}"
     VERT_RES="${DISP_RES#*x}"
     [ $((HORZ_RES)) -gt "${MXHRZNTL}" ] || [ $((VERT_RES)) -gt "${MXVERTCL}" ] && continue
