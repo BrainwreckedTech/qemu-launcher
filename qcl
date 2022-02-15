@@ -335,17 +335,19 @@ case "${GPU_CARD}" in
          VGA*) true;;
        vmware) GPU_CARD='vmware-svga';;
   vmware-svga) true;;
+            *) echo "Unknown GPU ${GPU_CARD}" && exit 1;;
 esac
 
 case "${NET_CARD}" in
-    e1000) true;;
-    intel) NET_CARD='e1000';;
-    pcnet) true;;
-     ne2k) NET_CARD='ne2k_pci';;
-    tulip) true;;
-  realtek) NET_CARD='rtl8139';;
-  rtl8139) true;;
-        *) echo "Unknown NIC ${NET_CARD}" && exit 1;;
+         e1000) true;;
+         intel) NET_CARD='e1000';;
+         pcnet) true;;
+          ne2k) NET_CARD='ne2k_pci';;
+         tulip) true;;
+       realtek) NET_CARD='rtl8139';;
+       rtl8139) true;;
+  virtio-net-*) true;;
+             *) echo "Unknown NIC ${NET_CARD}" && exit 1;;
 esac
 
 for DEVICE in "${GPU_CARD}" "${POINTING}" "${VBALLOON}"; do
