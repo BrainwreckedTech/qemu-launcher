@@ -26,12 +26,12 @@ CPU options:
 
       <cpu> is one of the following:
 
-      486|80486          opteron            core-gen1|nehalem
-      pentium            core2duo           westmere
-      pentium2           atom64|denverton   core-gen2|sandybridge
-      pentium3                              core-gen3|ivybridge
-      pentium4|coreduo                      core-gen4|haswell
-      atom32|n270                           core-gen5|broadwell
+      pentium             opteron            core-gen1|nehalem
+      pentium2            core2duo           westmere
+      pentium3            penryn             core-gen2|sandybridge
+      pentium4|coreduo    atom64|denverton   core-gen3|ivybridge
+      atom32|n270                            core-gen4|haswell
+                                             core-gen5|broadwell
 
 Drive options:
 
@@ -297,9 +297,11 @@ fi
 
 [ "${GPU_CARD}" == "VGA" ] && set_vga_resolution "${MAXDSIZE}"
 
+if [ "${MACHINE}" == 'type=pc' ] && [ "${POINTING:0:3}" == 'usb' ]; then
+  DEVICES="-device piix4-usb-uhci"
+fi
+
 case "${VIRT_CPU}" in
-          486) true;;
-        80486) VIRT_CPU='486';;
       pentium) true;;
      pentium2) true;;
      pentium3) true;;
