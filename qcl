@@ -15,7 +15,6 @@ System options:
    --ram <MiB>              Specify RAM available to VM
    --sound                  Enable sound
    --term <term-bin>        Launch QEMU in <term-bin> in background
-   --win2k                  Enable Win2K hack (solves disk full bug, slows IDE)
 
 CPU options:
 
