@@ -11,13 +11,11 @@ System options:
 
    --nokvm|--nohvf          Disable KVM/HVF accelleration
    --efi <bits>             Boot using <bits>-bit UEFI instead of BIOS
-   --win2k                  Enable Win2K hack (solves disk full bug, slows IDE)
-   --legacy                 Use legacy hardware*
+   --pcfrom <year>          Emulate hardware from <year>
    --ram <MiB>              Specify RAM available to VM
    --sound                  Enable sound
    --term <term-bin>        Launch QEMU in <term-bin> in background
-
-    *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + no VirtIO
+   --win2k                  Enable Win2K hack (solves disk full bug, slows IDE)
 
 CPU options:
 
@@ -50,6 +48,9 @@ Drive options:
 
 Pointing device options:
 
+   QCL will use a PS/2 mouse up until --pcfrom 1999, and usb-tablet with
+   --pcfrom 2000 and later.  VirtIO setups will use virtio-tablet-pci.
+
    --mouse <qemu-pointer>
 
       <qemu-pointer> can be anything QEMU accepts, plus "PS/2"
@@ -69,6 +70,8 @@ Pointing device options:
          virtio-tablet-pci   virtio-tablet-device
 
 GPU options
+
+   QCL uses cirrus-vga up to --pcfrom 2001 and VGA from --pcfrom 2002 forward
 
    --gpu <qemu-gpu>
 
@@ -176,6 +179,47 @@ function add_drive {
   [ "${DVC_FRMT}" = "guess" ] || S_DRIVES="${S_DRIVES},format=${DVC_FRMT}"
 }
 
+function set_hardware {
+  [ "${1}" -lt 1995 ] || [ "${1}" -gt 2015 ] && \
+    "${1} out of range -- expect 1995-2015" && exit 1
+
+  # This is our baseline (1995) and we'll change it depending on the year given
+  MACHINE='type=pc'
+  VIRT_CPU='pentium'
+  CORLIMIT='1'
+  SCSICARD='am53c974'
+  NET_CARD='ne2k_pci'
+  GPU_CARD='cirrus-vga'
+  POINTING=''
+  SND_CARD='sb16'
+  RAMLIMIT='64'
+  VBALLOON=''
+  USEACCEL='false'
+
+  [ "${1}" -ge 1996 ] && VIRT_CPU='pentium' && RAMLIMIT='128'
+  [ "${1}" -ge 1997 ] && VIRT_CPU='pentium2' && RAMLIMIT='256' && NET_CARD="pcnet"
+  [ "${1}" -ge 1998 ] && RAMLIMIT='384'
+  [ "${1}" -ge 1999 ] && VIRT_CPU='pentium3' && RAMLIMIT='448' && SCSICARD="dc390"
+  [ "${1}" -ge 2000 ] && VIRT_CPU='pentium4' && RAMLIMIT='768' && SND_CARD='ac97'
+  [ "${1}" -ge 2001 ] && RAMLIMIT='1024' && USEACCEL='true'
+  [ "${1}" -ge 2002 ] && RAMLIMIT='2048' && GPU_CARD="VGA" && NET_CARD='rtl8139'
+  [ "${1}" -ge 2003 ] && RAMLIMIT='3072'
+  [ "${1}" -ge 2004 ] && VIRT_CPU='opteron' && RAMLIMIT='4096' && POINTING='usb-tablet'
+  [ "${1}" -ge 2005 ] && SND_CARD='hda-ouput'
+  [ "${1}" -ge 2006 ] && VIRT_CPU='core2duo' && CORLIMIT='2' && RAMLIMIT='8192'
+  [ "${1}" -ge 2007 ] && VIRT_CPU='penryn' && CORLIMIT='4' && RAMLIMIT='999999999'
+  [ "${1}" -ge 2008 ] && VIRT_CPU='core-gen1' && CORLIMIT='8'
+  [ "${1}" -ge 2009 ] && MACHINE='type=q35' && SND_CARD='ich9-intel-hda'
+  [ "${1}" -ge 2010 ] && VIRT_CPU='westmere' && CORLIMIT='12'
+  [ "${1}" -ge 2011 ] && VIRT_CPU='core-gen2'
+  [ "${1}" -ge 2012 ] && VIRT_CPU='core-gen3'
+  [ "${1}" -ge 2013 ] && VIRT_CPU='core-gen4' && CORLIMIT='16' && NET_CARD='e1000e'
+  [ "${1}" -ge 2014 ] && VIRT_CPU='core-gen5'
+
+  [ "${CORLIMIT}" -lt "${VIRTCORS}" ] && VIRTCORS="${CORLIMIT}"
+  [ "${RAMLIMIT}" -lt "${RAM_SIZE}" ] && RAM_SIZE="${RAMLIMIT}"
+}
+
 function set_vga_resolution {
   [ "${GPU_CARD:0:3}" != "VGA" ] && return
   if [ -z "${1}" ]; then
@@ -250,17 +294,18 @@ while [ ${#} -gt 0 ]; do
     -h|--help) show_help                  ; exit 0;;
      --initrd) BOOTIRFS="${2}"            ; shift 2;;
      --kernel) BOOTKRNL="${2}"            ; shift 2;;
-     --legacy) POINTING=''; VBALLOON=''; NET_CARD='pcnet'; MACHINE='type=pc'; GPU_CARD='cirrus-vga'; VIRT_CPU="pentium3"; BASE="${BASE} -device piix4-usb-uhci"; shift 1;;
      --maxres) MAXDSIZE="${2}"            ; shift 2;;
       --mouse) POINTING="${2}"            ; shift 2;;
         --nic) NET_CARD="${2}"            ; shift 2;;
       --nohvf) USEACCEL=false             ; shift 1;;
       --nokvm) USEACCEL=false             ; shift 1;;
         --ram) RAM_SIZE="${2}"            ; shift 2;;
+     --pcfrom) set_hardware "${2}"        ; shift 2;;
         --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
       --sound) ENABLESC='true'            ; shift 1;;
        --term) TERMINAL="${2}"            ; shift 2;;
-      --win2k) W2K_HACK='-win2k-hack'     ; shift 1;;
+     --usehvf) USEACCEL='true'            ; shift 1;;
+     --usekvm) USEACCEL='true'            ; shift 1;;
       --xport) DSPLYPRT="${OPTARG}"       ; shift 2;;
             *) echo "Unkonw argument ${1}"; show_help >&2; exit 1;;
   esac
