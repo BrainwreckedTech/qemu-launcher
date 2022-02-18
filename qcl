@@ -220,6 +220,62 @@ function set_hardware {
   [ "${RAMLIMIT}" -lt "${RAM_SIZE}" ] && RAM_SIZE="${RAMLIMIT}"
 }
 
+function set_windows_hardware {
+  case "${1,,}" in
+         95|4.0) WIN_VRSN=400;;
+       95a|4.0a) WIN_VRSN=401;;
+       95b|4.0b) WIN_VRSN=402;;
+       95c|4.0c) WIN_VRSN=403;;
+         98|4.1) WIN_VRSN=410;;
+        98se|se) WIN_VRSN=411;;
+         me|4.9) WIN_VRSN=490;;
+    2000|2k|5.0) WIN_VRSN=500;;
+         xp|5.1) WIN_VRSN=510;;
+       xp64|5.2) WIN_VRSN=520;;
+      vista|6.0) WIN_VRSN=600;;
+          7|6.1) WIN_VRSN=610;;
+          8|6.2) WIN_VRSN=620;;
+        8.1|6.3) WIN_VRSN=630;;
+             10) WIN_VRSN=1000;;
+             11) WIN_VRSN=1100;;
+              *) echo "Unkown Windows version ${1}"; exit 1
+  esac
+
+  VBALLOON=''
+
+  [ "${WIN_VRSN}" -lt 402 ] && VIRT_CPU='pentium'
+
+  if [ "${WIN_VRSN}" -ge 402 ] && [ "${WIN_VRSN}" -lt 410 ]; then
+    [ ${VIRT_CPU} != "pentium" ] && [ ${VIRT_CPU} != "pentium2" ] && VIRT_CPU="pentium2"
+  elif [ "${WIN_VRSN}" -ge 410 ] && [ "${WIN_VRSN}" -lt 520 ]; then
+    [[ ${VIRT_CPU} =~ "pentium" ]] || VIRT_CPU="pentium4"
+  fi
+
+  [ "${WIN_VRSN}" -lt 410 ] && NET_CARD='ne2k_pci'
+  [ "${WIN_VRSN}" -ge 410 ] && [ "${WIN_VRSN}" -lt 500 ] && NET_CARD='pcnet'
+
+  if [ "${WIN_VRSN}" -lt 500 ]; then
+    VIRTCORS=1
+    POINTING=''
+    SND_CARD='sb16'
+    USEACCEL='false'
+    [ "${RAM_SIZE}" -gt 448 ] &&  RAM_SIZE=448
+  else
+    POINTING='usb-tablet'
+    SND_CARD='ac97'
+    USEACCEL='true'
+    NET_CARD='rtl8139'
+  fi
+
+  if [ "${WIN_VRSN}" -eq 500 ] || [ "${WIN_VRSN}" -eq 510 ]; then
+    [ "${RAM_SIZE}" -gt 4096 ] &&  RAM_SIZE=4096
+  fi
+
+  [ "${WIN_VRSN}" -eq 500 ] && [ "${VIRTCORS}" -gt 2 ] && VIRTCORS=2
+  [ "${WIN_VRSN}" -lt 600 ] && GPU_CARD='cirrus-vga' || GPU_CARD='VGA'
+  [ "${WIN_VRSN}" -lt 610 ] && MACHINE='type=pc' || MACHINE='type=q35'
+}
+
 function set_vga_resolution {
   [ "${GPU_CARD:0:3}" != "VGA" ] && return
   if [ -z "${1}" ]; then
@@ -308,6 +364,7 @@ while [ ${#} -gt 0 ]; do
        --term) TERMINAL="${2}"            ; shift 2;;
      --usehvf) USEACCEL='true'            ; shift 1;;
      --usekvm) USEACCEL='true'            ; shift 1;;
+    --windows) set_windows_hardware "${2}"; shift 2;;
       --xport) DSPLYPRT="${OPTARG}"       ; shift 2;;
             *) echo "Unkonw argument ${1}"; show_help >&2; exit 1;;
   esac
