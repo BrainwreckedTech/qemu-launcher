@@ -11,48 +11,107 @@ Command Line Operation
 * qemu
 * spice (qemu may pull this in)
 * tigervnc (for vncviewer)
-* parted (for disk partition listings)
-
 
 Operation
 ---------
 
-### System options:
+### System options
 
-      --nokvm|--nohvf       Disable KVM/HVF accelleration
-      --cpu <cpu>           Specify the CPU to emulate
-      --cores               Specify number of cores (default = [cores+1]/2)
-      --efi <bits>          Boot using <bits>-bit UEFI instead of BIOS
-      --win2k               Enable Win2K hack (solves disk full bug, slows IDE)
-      --legacy              Use legacy hardware*
-      --ram <MiB>           Specify RAM available to VM
-      --sound               Enable sound
-      --term <term-bin>     Launch QEMU in <term-bin> in background
-      --mouse               Use USB mouse instead of tablet device
-      --gpu <card>          Specify the GPU_CARD device to use
+    --nokvm|--nohvf          Disable KVM/HVF accelleration
+    --efi <bits>             Boot using <bits>-bit UEFI instead of BIOS
+    --pcfrom <year>          Emulate hardware from <year>
+    --ram <MiB>              Specify RAM available to VM
+    --sound                  Enable sound
+    --term <term-bin>        Launch QEMU in <term-bin> in background
 
-      *i440FX + PIIX + Cirrus VGA + AMD PCNet NIC + drives on IDE (no VirtIO)
+### CPU options:
+
+    --cores <n>              Emulate <n> cores.  Default is ([cores+2]/3)
+    --cpu <cpu>              Emulate <cpu> model.  Default is host.
+
+        <cpu> is one of the following:
+
+        pentium             opteron            core-gen1|nehalem
+        pentium2            core2duo           westmere
+        pentium3            penryn             core-gen2|sandybridge
+        pentium4|coreduo    atom64|denverton   core-gen3|ivybridge
+        atom32|n270                            core-gen4|haswell
+                                               core-gen5|broadwell
 
 ### Drive options:
 
-      --drive <file>:<floppy|ide|scsi|ahci|virtio>
+    --drive <file>:<interface>
+
+        <interface> is one of floppy, ide, scsi, ahci, or virtio
+
+        If <interface> is not specified then qcl will guess based on the file
+        extension and machine type.
+
+        Note that ahci cannot be combined with type=pc.  There is no AHCI
+        controller for the i440FX chipset.  PIIX provides IDE (ATA) only.
+
+        SATA is only a connector type --  drives still used the ATA (IDE) protocol
+        until Intel released AHCI in 2002.
+
+### Pointing device options:
+
+    QCL will use a PS/2 mouse up until --pcfrom 1999, and usb-tablet with
+    --pcfrom 2000 and later.  VirtIO setups will use virtio-tablet-pci.
+
+    --mouse <qemu-pointer>
+
+        <qemu-pointer> can be anything QEMU accepts, plus "PS/2"
+        Common pointers relevant to QCL are:
+
+           ps/2               The standard PS/2 QEMU normally presents the guest
+           usb-mouse          Standard USB mouse
+           usb-tablet         Standard USB tablet device
+           usb-wacom-tablet   QEMU PenPartner Tablet
+           vmmouse            ISA bus VM mouse
+
+        Additionally, there are VirtIO devices that can connect to either the
+        PCI bus (for guests that cannot use complete VirtIO) or the virtio-bus
+        (for full VirtIO utilization.)
+
+            virtio-mouse-pci    virtio-mouse-device
+            virtio-tablet-pci   virtio-tablet-device
+
+### GPU options
+
+    QCL uses cirrus-vga up to --pcfrom 2001 and VGA from --pcfrom 2002 forward
+
+    --gpu <qemu-gpu>
+
+        <qemu-gpu> can be anything QEMU accepts.
+        Common GPUs relevant to QCL are:
+
+            cirrus[-vga]       Cirrus Logic GD-5446
+            rage128pro         ATI Rage 128 Pro
+            radeon7000         ATI Radeon 7000
+            VGA                Standard VESA VGA device
+            vmware[-svga]      VMWare SVGA device
 
 ### Network options:
 
-      --forward <port:port> Forward host's <port> to guest's <port>
-      --pcnet               Use an AMD PCNet NIC instead of VirtIO
-      --ne2k                Use an NE2000-compatible NIC instead of VirtIO
+    --forward <port:port> Forward host's <port> to guest's <port>
+
+    --nic <qemu-nic>
+
+        <qemu-nic> can be one of the following
+
+            e1000              Intel Gigabit e1000-82540em
+            intel              An alias for e1000
+            pcnet              AMD PCnet Fast Ethernet Card
+            ne2k               An NE2000-compatible Ethernet Card
+            tulip              A DEC 21x4x-compatible Ethernet Card
+            realtek            An alias for rtl8139
+            rtl8139            Realtek 8139 Ethernet Card
 
 ### Display options:
 
-      The default is to start a VNC host and launch a VNC viewer.
+    The default is to start a VNC host and launch a VNC viewer.
 
-      --gtk             Use a GTK window (QEMU default)
-      --qxl <port>      Use QXL/SPICE instead of VNC
-      --daemon          Don't launch SPICE/vncviewer directly
-      --xport           Specify X11 listening port number
-
-### Utilties:
-
-      -h|--help         This help text.
-
+    --gtk                    Use a GTK window (QEMU default)
+    --qxl <port>             Use QXL/SPICE instead of VNC
+    --daemon                 Don't launch SPICE/vncviewer directly
+    --xport                  Specify X11 listening port number
