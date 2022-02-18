@@ -247,6 +247,7 @@ BASE='-nodefaults -parallel none -serial none'
 MACHINE='type=q35'
 FIRMWARE='BIOS'
 ENABLESC='false'
+SHOW_CFG='false'
 MAXDSIZE=''
 
 #CPU
@@ -303,6 +304,7 @@ while [ ${#} -gt 0 ]; do
      --pcfrom) set_hardware "${2}"        ; shift 2;;
         --qxl) VDISPLAY="${QXLDSPLY}"; GPU_CARD='qxl-vga'; shift 2;;
       --sound) ENABLESC='true'            ; shift 1;;
+    --showcfg) SHOW_CFG='true'            ; shift 1;;
        --term) TERMINAL="${2}"            ; shift 2;;
      --usehvf) USEACCEL='true'            ; shift 1;;
      --usekvm) USEACCEL='true'            ; shift 1;;
@@ -411,10 +413,12 @@ fi
 
 case "$(uname)" in
   Linux)
+    ACELTYPE='KVM'
     ${USEACCEL} && KVMACCEL='-enable-kvm' && MACHINE="${MACHINE},accel=kvm"
     VNCMD="vncviewer :${DSPLYPRT}"
     ;;
   Darwin)
+    ACELTYPE='HVF'
     ${USEACCEL} && MACHINE="${MACHINE},accel=hvf"
     VNCMD="open vnc://localhost:59${DSPLYPRT}"
     ;;
@@ -430,7 +434,7 @@ fi
 
 VMCORES="$((VIRTCORS / VTHREADS))"
 
-if ${V_LAUNCH}; then
+if ! ${SHOW_CFG} && ${V_LAUNCH}; then
   case "${VDISPLAY}" in
     *vnc*)
       VDISPLAY="egl-headless -vnc :${DSPLYPRT}"
@@ -466,6 +470,23 @@ QEMU_CMD="qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} 
   -nic user,model=${NET_CARD}${PORT_FWD} \
   ${DEVICES} ${S_DRIVES} ${BOOTPARM}"
 
+if ${SHOW_CFG}; then
+  printf '%17s : %s\n' 'Machine Type'    "${MACHINE:5:2}"
+  printf '%17s : %s\n' "${ACELTYPE} Acceleration" "${USEACCEL}"
+  printf '%17s : %s\n' 'CPU Type'        "${VIRT_CPU}"
+  printf '%17s : %s\n' 'Multithreading'  "${VMCORES} cores ${VTHREADS} threads"
+  printf '%17s : %s\n' 'System RAM'      "${RAM_SIZE}"
+  printf '%17s : %s\n' 'Graphics Card'   "${GPU_CARD}"
+  printf '%17s : %s\n' 'Network Card'    "${NET_CARD}"
+  printf '%17s : %s\n' 'Sound Card'      "$([ -z "${ENABLESC}" ] && echo "${SND_CARD}" || echo none)"
+  printf '%17s : %s\n' 'Pointing Device' "${POINTING:-PS/2}"
+  printf '%17s : %s\n' 'VirtIO Balloon'  "$([ -n "${VBALLOON}" ] && echo yes || echo no)"
+  printf '%17s : %s\n' 'SCSI Card'       "$([[ "${DEVICES}" =~ scsi ]] && echo "${SCSICARD}" || echo no)"
+  printf '%17s : %s\n' 'AHCI Controller' "$([[ "${DEVICES}" =~ ahci ]] && echo yes || echo no)"
+
+  echo "Resulting Command : $(echo "${QEMU_CMD}" | sed 's/  \+/ /g')"
+  exit 0
+fi
 
 if [ -n "${TERMINAL}" ]; then
   set -x
