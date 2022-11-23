@@ -69,12 +69,10 @@ Operation
            usb-wacom-tablet   QEMU PenPartner Tablet
            vmmouse            ISA bus VM mouse
 
-        Additionally, there are VirtIO devices that can connect to either the
-        PCI bus (for guests that cannot use complete VirtIO) or the virtio-bus
-        (for full VirtIO utilization.)
+        Additionally, there are VirtIO devices
 
-            virtio-mouse-pci    virtio-mouse-device
-            virtio-tablet-pci   virtio-tablet-device
+           virtio-mouse-pci    Mouse device utilizing VirtIO
+           virtio-tablet-pci   USB tablet device utilizing VirtIO
 
 ### GPU options
 
