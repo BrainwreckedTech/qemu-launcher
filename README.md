@@ -107,6 +107,11 @@ Operation
             realtek            An alias for rtl8139
             rtl8139            Realtek 8139 Ethernet Card
 
+    --vtap <mac-address>  Use macvtap with <mac-address>
+
+        <mac-address> can be set to 'random' if you want a random MAC
+        address or just don't want to be bothered choosing an address.
+
 ### Display options:
 
     The default is to start a VNC host and launch a VNC viewer.

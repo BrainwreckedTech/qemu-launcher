@@ -99,6 +99,11 @@ Network options:
          realtek            An alias for rtl8139
          rtl8139            Realtek 8139 Ethernet Card
 
+    --vtap <mac-address>  Use macvtap with <mac-address>
+
+        <mac-address> can be set to 'random' if you want a random MAC
+        address or just don't want to be bothered choosing an address.
+
 Display options:
 
    The default is to start a VNC host and launch a VNC viewer.
@@ -333,6 +338,7 @@ QXLDSPLY="spice-app -spice port=60${DSPLYPRT},disable-ticketing ${QXL_VSPD} ${QX
 VBALLOON='virtio-balloon-pci'
 POINTING='virtio-tablet-pci'
 NET_CARD='virtio-net-pci'
+NET_MODE='user'
 SCSICARD='virtio-scsi-pci'
 SND_CARD='hda-output'
 GPU_CARD='VGA'
@@ -363,12 +369,18 @@ while [ ${#} -gt 0 ]; do
        --term) TERMINAL="${2}"            ; shift 2;;
      --usehvf) USEACCEL='true'            ; shift 1;;
      --usekvm) USEACCEL='true'            ; shift 1;;
+       --vtap) NET_MODE='tap'; MAC_ADDR="${2}"; shift 2;;
     --windows) set_windows_hardware "${2}"; shift 2;;
       --xport) DSPLYPRT="${OPTARG}"       ; shift 2;;
             *) echo "Unkonw argument ${1}"; show_help >&2; exit 1;;
   esac
 done
 shift $((OPTIND-1))
+
+if [ -n "${PORT_FWD}" ] && [ -n "${MAC_ADDR}" ]; then
+  echo "Port forwarding makes no sense when using tap networking.  Ignoring port fowards."
+  PORT_FWD=
+fi
 
 [ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
@@ -519,11 +531,29 @@ if [ "${NET_CARD}" == 'pcnet' ] || [[ "${NET_CARD}" =~ 'ne2k' ]] || [ -z "${NET_
   fi
 fi
 
+if [ "${NET_MODE}" = "tap" ]; then
+  SYSNETIF="$(route | grep default | rev | cut -d\  -f1 | rev)"
+  for NUMERATE in {0..99}; do
+    [ ! -e /sys/devices/virtual/net/qclvtap${NUMERATE} ] && break
+  done
+  ip link add link "${SYSNETIF}" name "qclvtap${NUMERATE}" type macvtap mode bridge
+  if [ "${MAC_ADDR}" = "random" ]; then
+    MAC_ADDR=",mac=$(< /sys/devices/virtual/net/qclvtap${NUMERATE}/address)"
+  else
+    ip link set dev "qclvtap${NUMERATE}" address "${MAC_ADDR}"
+    MAC_ADDR=",mac=${MAC_ADDR}"
+  fi
+  ip link set dev "qclvtap${NUMERATE}" up
+  NET_MODE="${NET_MODE},fd=30,vhost=on"
+# NET_MODE="${NET_MODE},id=qclnet0,ifname=tap$(< /sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex),script=no,downscript=no"
+  NTWRK_FD="/dev/tap$(< /sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex)"
+fi
+
 QEMU_CMD="qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
   -machine ${MACHINE} ${BASE} ${W2K_HACK} -cpu ${VIRT_CPU} \
   -smp cores=${VMCORES},threads=${VTHREADS} \
   -monitor stdio -display ${VDISPLAY} \
-  -nic user,model=${NET_CARD}${PORT_FWD} \
+  -nic ${NET_MODE},model=${NET_CARD}${MAC_ADDR}${PORT_FWD} \
   ${DEVICES} ${S_DRIVES} ${BOOTPARM}"
 
 if ${SHOW_CFG}; then
@@ -546,11 +576,13 @@ fi
 
 if [ -n "${TERMINAL}" ]; then
   set -x
-  ${TERMINAL} -e "${QEMU_CMD}" &
+  ${TERMINAL} -e "exec 30<> ${NTWRK_FD}; ${QEMU_CMD}" &
   set +x
   sleep 2
 else
   [ -t 1 ] && cat "${TEMPFILE}"
   rm "${TEMPFILE}"
-  eval "set -x; ${QEMU_CMD}"
+  [ -n "${NTWRK_FD}" ] && exec 30<> "${NTWRK_FD}"
+  ( eval "set -x; ${QEMU_CMD}" )
+  [ -n "${NTWRK_FD}" ] && ip link del link "${SYSNETIF}" name "qclvtap${NUMERATE}" && exec 30>&-
 fi
