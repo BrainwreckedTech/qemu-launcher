@@ -471,7 +471,7 @@ case "$(uname)" in
   Linux)
     ACELTYPE='KVM'
     ${USEACCEL} && KVMACCEL='-enable-kvm' && MACHINE="${MACHINE},accel=kvm"
-    VNCMD="vncviewer :${DSPLYPRT}"
+    VNCMD="vncviewer localhost:59${DSPLYPRT}"
     ;;
   Darwin)
     ACELTYPE='HVF'
@@ -493,7 +493,7 @@ VMCORES="$((VIRTCORS / VTHREADS))"
 if ! ${SHOW_CFG} && ${V_LAUNCH}; then
   case "${VDISPLAY}" in
     *vnc*)
-      VDISPLAY="egl-headless -vnc :${DSPLYPRT}"
+      VDISPLAY="egl-headless -vnc localhost:${DSPLYPRT}"
       sh -c "sleep 1; su -c DISPLAY=\"${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
 #   *spice*)
 #     command -v spicy > /dev/null 2>&1 && CMMND="spicy -h localhost -p 60${XPORT}"
