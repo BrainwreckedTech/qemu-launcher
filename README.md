@@ -115,6 +115,6 @@ Operation
     The default is to start a VNC host and launch a VNC viewer.
 
     --gtk                    Use a GTK window (QEMU default)
-    --qxl <port>             Use QXL/SPICE instead of VNC
+    --qxl                    Use QXL/SPICE instead of VNC
     --daemon                 Don't launch SPICE/vncviewer directly
     --xport                  Specify X11 listening port number
