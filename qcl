@@ -478,12 +478,12 @@ case "$(/bin/uname)" in
   Linux)
     ACELTYPE='KVM'
     ${USEACCEL} && KVMACCEL='-enable-kvm' && MACHINE="${MACHINE},accel=kvm"
-    VNCND="/usr/bin/vncviewer localhost:59${DSPLYPRT}"
+    VNC_CMND="/usr/bin/vncviewer localhost:59${DSPLYPRT}"
     ;;
   Darwin)
     ACELTYPE='HVF'
     ${USEACCEL} && MACHINE="${MACHINE},accel=hvf"
-    VNCMD="open vnc://localhost:59${DSPLYPRT}"
+    VNC_CMND="open vnc://localhost:59${DSPLYPRT}"
     ;;
 esac
 
@@ -501,11 +501,11 @@ if ! ${SHOW_CFG} && ${V_LAUNCH}; then
   case "${VDISPLAY}" in
     *vnc*)
       VDISPLAY="egl-headless -vnc localhost:${DSPLYPRT}"
-      /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
+      /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNC_CMND}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
 #   *spice*)
-#     [ -e /usr/bin/spicy ] && CMMND="/usr/bin/spicy -h localhost -p 60${XPORT}"
-#     [ -e /usr/bin/remote-viewer ] && CMMND="/usr/bin/remote-viewer spice://localhost:60${XPORT}"
-#     /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${CMMND} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
+#     [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p 60${XPORT}"
+#     [ -e /usr/bin/remote-viewer ] && SPICECMD="/usr/bin/remote-viewer spice://localhost:60${XPORT}"
+#     /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
   esac
 fi
 
