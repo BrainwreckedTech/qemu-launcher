@@ -154,7 +154,7 @@ function add_drive {
     elif [[ "${MACHINE}" =~ pc ]]; then
       INTERFACE='ide'
     fi
-    printf 'guessed %s\n' "${INTERFACE}"
+    /usr/bin/printf 'guessed %s\n' "${INTERFACE}"
   fi
 
   case ${INTERFACE} in
@@ -310,15 +310,15 @@ MAXDSIZE=''
 
 #CPU
 VIRT_CPU="host"
-VIRTCORS=$((($(getconf _NPROCESSORS_ONLN)+2)/3))
+VIRTCORS=$((($(//usr/bin/getconf _NPROCESSORS_ONLN)+2)/3))
 
 #RAM (default if not specified)
 for MEMORIES in /sys/devices/system/memory/memory*; do
   if [[ $(< "${MEMORIES}/online") == 1 ]]; then
-    ((TOTALRAM+=0x$(cat /sys/devices/system/memory/block_size_bytes)))
+    ((TOTALRAM+=0x$(/bin/cat /sys/devices/system/memory/block_size_bytes)))
   fi
 done
-POWEROF2="$(awk "BEGIN {print int(log(${TOTALRAM}/3)/log(2))}")"
+POWEROF2="$(/usr/bin/awk "BEGIN {print int(log(${TOTALRAM}/3)/log(2))}")"
 RAM_SIZE="$((2**POWEROF2/1024**2))"
 
 # DISPLAY
@@ -348,7 +348,7 @@ while [ ${#} -gt 0 ]; do
      --daemon) V_LAUNCH=false             ; shift 1;;
       --drive) add_drive "${2}"           ; shift 2;;
         --efi) FIRMWARE="UEFI${2}"        ; shift 2;;
-    --forward) PORT_FWD="${PORT_FWD},hostfwd=tcp::$(echo "${2}" | cut -d: -f1)-:$(echo "${2}" | cut -d: -f2)"; shift 2;;
+    --forward) PORT_FWD="${PORT_FWD},hostfwd=tcp::$(echo "${2}" | /usr/bin/cut -d: -f1)-:$(echo "${2}" | /usr/bin/cut -d: -f2)"; shift 2;;
         --gpu) GPU_CARD="${2}"            ; shift 2;;
         --gtk) VDISPLAY='gtk'             ; shift 1;;
     -h|--help) show_help                  ; exit 0;;
@@ -380,26 +380,23 @@ if [ -n "${PORT_FWD}" ] && [ -n "${MAC_ADDR}" ]; then
   PORT_FWD=
 fi
 
-[ -n "${PKEXEC_UID}" ] && SUDO_USER=$(getent passwd "${PKEXEC_UID}" | cut -d: -f1)
+[ -n "${PKEXEC_UID}" ] && SUDO_USER=$(/usr/bin/getent passwd "${PKEXEC_UID}" | /usr/bin/cut -d: -f1)
 [ -z "${SUDO_USER}" ] && echo "Must use sudo or pkexec to run as root." && exit 1
 
 if [ "${FIRMWARE:0:4}" = "UEFI" ]; then
-  printf '%s' 'Finding UEFI firmware...'
+  /usr/bin/printf 'Finding UEFI firmware...'
 
   # Try to use locate, it's faster
 
-  if command -v plocate > /dev/null; then
-    FRMWRFIL="$(plocate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
-  elif command -v mlocate > /dev/null; then
-    FRMWRFIL="$(mlocate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
-  elif command -v locate > /dev/null; then
-    FRMWRFIL="$(locate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
-  fi
-
-  # Maybe the system doesn't have a locate?
-
-  if [ -z "${FRMWRFIL}" ]; then
-    FRMWRFIL="$(find /usr -type f -wholename '/usr/*${FIRMWARE: -2}/OVMF_CODE.fd')"
+  if [ -e /usr/bin/plocate ]; then
+    FRMWRFIL="$(/usr/bin/plocate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
+  elif [ -e /usr/bin/mlocate ]; then
+    FRMWRFIL="$(/usr/bin/mlocate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
+  elif [ -e /bin/locate ]; then
+    FRMWRFIL="$(/bin/locate "/usr/*${FIRMWARE: -2}/OVMF_CODE.fd")"
+  else
+    # Maybe the system doesn't have a locate?
+    FRMWRFIL="$(/usr/bin/find /usr -type f -wholename '/usr/*${FIRMWARE: -2}/OVMF_CODE.fd')"
   fi
 
   case "${FRMWRFIL}" in
@@ -477,11 +474,11 @@ else
   BOOTPARM="-boot menu=on"
 fi
 
-case "$(uname)" in
+case "$(/bin/uname)" in
   Linux)
     ACELTYPE='KVM'
     ${USEACCEL} && KVMACCEL='-enable-kvm' && MACHINE="${MACHINE},accel=kvm"
-    VNCMD="vncviewer localhost:59${DSPLYPRT}"
+    VNCND="/usr/bin/vncviewer localhost:59${DSPLYPRT}"
     ;;
   Darwin)
     ACELTYPE='HVF'
@@ -490,9 +487,9 @@ case "$(uname)" in
     ;;
 esac
 
-lscpu | grep -q topoext && VIRT_CPU="${VIRT_CPU},topoext"
+/usr/bin/lscpu | /bin/grep -q topoext && VIRT_CPU="${VIRT_CPU},topoext"
 
-if [ "$(lscpu | grep 'Thread(s) per core' | sed 's/.*: *//g')" = "2" ]; then
+if [ "$(/usr/bin/lscpu | /bin/grep 'Thread(s) per core' | /bin/sed 's/.*: *//g')" = "2" ]; then
   [ "$((VIRTCORS % 2))" = "0" ] && VTHREADS=2 || VTHREADS=1
 else
   VTHREADS=1
@@ -504,11 +501,11 @@ if ! ${SHOW_CFG} && ${V_LAUNCH}; then
   case "${VDISPLAY}" in
     *vnc*)
       VDISPLAY="egl-headless -vnc localhost:${DSPLYPRT}"
-      sh -c "sleep 1; su -c DISPLAY=\"${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
+      /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNCMD}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
 #   *spice*)
-#     command -v spicy > /dev/null 2>&1 && CMMND="spicy -h localhost -p 60${XPORT}"
-#     command -v remote-viewer > /dev/null 2>&1 && CMMND="remote-viewer spice://localhost:60${XPORT}"
-#     sh -c "sleep 1; su -c 'DISPLAY=${DISPLAY} ${CMMND} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
+#     [ -e /usr/bin/spicy ] && CMMND="/usr/bin/spicy -h localhost -p 60${XPORT}"
+#     [ -e /usr/bin/remote-viewer ] && CMMND="/usr/bin/remote-viewer spice://localhost:60${XPORT}"
+#     /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${CMMND} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
   esac
 fi
 
@@ -530,23 +527,23 @@ if [ "${NET_CARD}" == 'pcnet' ] || [[ "${NET_CARD}" =~ 'ne2k' ]] || [ -z "${NET_
 fi
 
 if [ "${NET_MODE}" = "tap" ]; then
-  SYSNETIF="$(route | grep default | rev | cut -d\  -f1 | rev)"
+  SYSNETIF="$(/sbin/route | /bin/grep default | /usr/bin/rev | /usr/bin/cut -d\  -f1 | /usr/bin/rev)"
   for NUMERATE in {0..99}; do
     [ ! -e "/sys/devices/virtual/net/qclvtap${NUMERATE}" ] && break
   done
-  ip link add link "${SYSNETIF}" name "qclvtap${NUMERATE}" type macvtap mode bridge
+  /bin/ip link add link "${SYSNETIF}" name "qclvtap${NUMERATE}" type macvtap mode bridge
   if [ "${MAC_ADDR}" = "random" ]; then
     MAC_ADDR=",mac=$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/address")"
   else
-    ip link set dev "qclvtap${NUMERATE}" address "${MAC_ADDR}"
+    /bin/ip link set dev "qclvtap${NUMERATE}" address "${MAC_ADDR}"
     MAC_ADDR=",mac=${MAC_ADDR}"
   fi
-  ip link set dev "qclvtap${NUMERATE}" up
+  /bin/ip link set dev "qclvtap${NUMERATE}" up
   NET_MODE="${NET_MODE},fd=30,vhost=on"
   NTWRK_FD="/dev/tap$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex")"
 fi
 
-QEMU_CMD="qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
+QEMU_CMD="/usr/bin/qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
   -machine ${MACHINE} ${BASE} ${W2K_HACK} -cpu ${VIRT_CPU} \
   -smp cores=${VMCORES},threads=${VTHREADS} \
   -monitor stdio -display ${VDISPLAY} \
@@ -567,19 +564,17 @@ if ${SHOW_CFG}; then
   printf '%17s : %s\n' 'SCSI Card'       "$([[ "${DEVICES}" =~ scsi ]] && echo "${SCSICARD}" || echo no)"
   printf '%17s : %s\n' 'AHCI Controller' "$([[ "${DEVICES}" =~ ahci ]] && echo yes || echo no)"
 
-  echo "Resulting Command : $(echo "${QEMU_CMD}" | sed 's/  \+/ /g')"
+  echo "Resulting Command : $(echo "${QEMU_CMD}" | /bin/sed 's/  \+/ /g')"
   exit 0
 fi
 
 if [ -n "${TERMINAL}" ]; then
-  set -x
-  ${TERMINAL} -e "exec 30<> ${NTWRK_FD}; ${QEMU_CMD}" &
-  set +x
-  sleep 2
+  ${TERMINAL} -e "/bin/cat '${TEMPFILE}'; exec 30<> ${NTWRK_FD}; ${QEMU_CMD}" &
+  /bin/sleep 2 && /bin/rm "${TEMPFILE}"
 else
   [ -t 1 ] && cat "${TEMPFILE}"
-  rm "${TEMPFILE}"
+  /bin/rm "${TEMPFILE}"
   [ -n "${NTWRK_FD}" ] && exec 30<> "${NTWRK_FD}"
   ( eval "set -x; ${QEMU_CMD}" )
-  [ -n "${NTWRK_FD}" ] && ip link del link "${SYSNETIF}" name "qclvtap${NUMERATE}" && exec 30>&-
+  [ -n "${NTWRK_FD}" ] && /bin/ip link del link "${SYSNETIF}" name "qclvtap${NUMERATE}" && exec 30>&-
 fi
