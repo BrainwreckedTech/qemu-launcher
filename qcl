@@ -497,17 +497,17 @@ fi
 
 VMCORES="$((VIRTCORS / VTHREADS))"
 
-if ! ${SHOW_CFG} && ${V_LAUNCH}; then
-  case "${VDISPLAY}" in
-    *vnc*)
-      VDISPLAY="egl-headless -vnc localhost:${DSPLYPRT}"
-      /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNC_CMND}\" - ${SUDO_USER}" > /dev/null 2>&1 & ;;
-#   *spice*)
-#     [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p 60${XPORT}"
-#     [ -e /usr/bin/remote-viewer ] && SPICECMD="/usr/bin/remote-viewer spice://localhost:60${XPORT}"
-#     /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" & ;;
-  esac
-fi
+case "${VDISPLAY}" in
+  *vnc*)
+    VDISPLAY="egl-headless -vnc localhost:${DSPLYPRT}"
+    ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNC_CMND}\" - ${SUDO_USER}" > /dev/null 2>&1 &
+  ;;
+# *spice*)
+#   [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p 60${XPORT}"
+#   [ -e /usr/bin/remote-viewer] && SPICECMD="/usr/bin/remote-viewer spice://localhost:60${XPORT}"
+#   ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" &
+# ;;
+esac
 
 TEMPFILE="$(mktemp)"
 
@@ -531,16 +531,16 @@ if [ "${NET_MODE}" = "tap" ]; then
   for NUMERATE in {0..99}; do
     [ ! -e "/sys/devices/virtual/net/qclvtap${NUMERATE}" ] && break
   done
-  /bin/ip link add link "${SYSNETIF}" name "qclvtap${NUMERATE}" type macvtap mode bridge
+  ! ${SHOW_CFG} && /bin/ip link add link "${SYSNETIF}" name "qclvtap${NUMERATE}" type macvtap mode bridge
   if [ "${MAC_ADDR}" = "random" ]; then
     MAC_ADDR=",mac=$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/address")"
   else
-    /bin/ip link set dev "qclvtap${NUMERATE}" address "${MAC_ADDR}"
+    ! ${SHOW_CFG} && /bin/ip link set dev "qclvtap${NUMERATE}" address "${MAC_ADDR}"
     MAC_ADDR=",mac=${MAC_ADDR}"
   fi
-  /bin/ip link set dev "qclvtap${NUMERATE}" up
+  ! ${SHOW_CFG} && /bin/ip link set dev "qclvtap${NUMERATE}" up
   NET_MODE="${NET_MODE},fd=30,vhost=on"
-  NTWRK_FD="/dev/tap$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex")"
+  ! ${SHOW_CFG} && NTWRK_FD="/dev/tap$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex")"
 fi
 
 QEMU_CMD="/usr/bin/qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
@@ -551,13 +551,14 @@ QEMU_CMD="/usr/bin/qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${R
   ${DEVICES} ${S_DRIVES} ${BOOTPARM}"
 
 if ${SHOW_CFG}; then
-  printf '%17s : %s\n' 'Machine Type'    "${MACHINE:5:2}"
+  printf '%17s : %s\n' 'Machine Type'    "$(echo "${MACHINE}" | /usr/bin/cut -d, -f1 | /usr/bin/cut -d= -f2)"
   printf '%17s : %s\n' "${ACELTYPE} Acceleration" "${USEACCEL}"
   printf '%17s : %s\n' 'CPU Type'        "${VIRT_CPU}"
   printf '%17s : %s\n' 'Multithreading'  "${VMCORES} cores ${VTHREADS} threads"
   printf '%17s : %s\n' 'System RAM'      "${RAM_SIZE}"
-  printf '%17s : %s\n' 'Graphics Card'   "${GPU_CARD}"
+  printf '%17s : %s\n' 'Graphics Card'   "${GPU_CARD%%,*}"
   printf '%17s : %s\n' 'Network Card'    "${NET_CARD}"
+  printf '%17s : %s\n' 'Network Type'    "${NET_MODE%%,*}"
   printf '%17s : %s\n' 'Sound Card'      "$([ -z "${ENABLESC}" ] && echo "${SND_CARD}" || echo none)"
   printf '%17s : %s\n' 'Pointing Device' "${POINTING:-PS/2}"
   printf '%17s : %s\n' 'VirtIO Balloon'  "$([ -n "${VBALLOON}" ] && echo yes || echo no)"
