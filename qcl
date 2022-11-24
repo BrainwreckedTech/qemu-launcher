@@ -532,19 +532,18 @@ fi
 if [ "${NET_MODE}" = "tap" ]; then
   SYSNETIF="$(route | grep default | rev | cut -d\  -f1 | rev)"
   for NUMERATE in {0..99}; do
-    [ ! -e /sys/devices/virtual/net/qclvtap${NUMERATE} ] && break
+    [ ! -e "/sys/devices/virtual/net/qclvtap${NUMERATE}" ] && break
   done
   ip link add link "${SYSNETIF}" name "qclvtap${NUMERATE}" type macvtap mode bridge
   if [ "${MAC_ADDR}" = "random" ]; then
-    MAC_ADDR=",mac=$(< /sys/devices/virtual/net/qclvtap${NUMERATE}/address)"
+    MAC_ADDR=",mac=$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/address")"
   else
     ip link set dev "qclvtap${NUMERATE}" address "${MAC_ADDR}"
     MAC_ADDR=",mac=${MAC_ADDR}"
   fi
   ip link set dev "qclvtap${NUMERATE}" up
   NET_MODE="${NET_MODE},fd=30,vhost=on"
-# NET_MODE="${NET_MODE},id=qclnet0,ifname=tap$(< /sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex),script=no,downscript=no"
-  NTWRK_FD="/dev/tap$(< /sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex)"
+  NTWRK_FD="/dev/tap$(< "/sys/devices/virtual/net/qclvtap${NUMERATE}/ifindex")"
 fi
 
 QEMU_CMD="qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
