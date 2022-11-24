@@ -14,7 +14,18 @@ System options:
    --pcfrom <year>          Emulate hardware from <year>
    --ram <MiB>              Specify RAM available to VM
    --sound                  Enable sound
-   --term <term-bin>        Launch QEMU in <term-bin> in background
+   --xport <1..99>          Port offset for VNC, SPICE, and telnet
+   --monitor <monitor>      Specify how qemu-monitor is accessed
+
+      <monitor> is one of the following:
+
+      stdio     (default)   Start monitor in current console
+      telnet                Start monitor at telnet:localhost:61<port>
+      unix                  Start monitor as a unix socket
+      <bin>                 Start monitor in a new console process
+
+      If <monitor> is not stdio, telnet, or unix, then the argument
+      is assumed to be the binary of a terminal emulator.
 
 CPU options:
 
@@ -109,7 +120,6 @@ Display options:
    --gtk                    Use a GTK window (QEMU default)
    --qxl                    Use QXL/SPICE instead of VNC
    --daemon                 Don't launch SPICE/vncviewer directly
-   --xport                  Specify X11 listening port number
 
 Utilties:
 
@@ -322,9 +332,10 @@ POWEROF2="$(/usr/bin/awk "BEGIN {print int(log(${TOTALRAM}/3)/log(2))}")"
 RAM_SIZE="$((2**POWEROF2/1024**2))"
 
 # DISPLAY
-DSPLYPRT=50
+PORT_NUM=0
 VDISPLAY=vnc
 V_LAUNCH=true
+QMONITOR=stdio
 
 # DEVICES
 VBALLOON='virtio-balloon-pci'
@@ -349,6 +360,7 @@ while [ ${#} -gt 0 ]; do
      --initrd) BOOTIRFS="${2}"            ; shift 2;;
      --kernel) BOOTKRNL="${2}"            ; shift 2;;
      --maxres) MAXDSIZE="${2}"            ; shift 2;;
+    --monitor) QMONITOR="${2}"            ; shift 2;;
       --mouse) POINTING="${2}"            ; shift 2;;
         --nic) NET_CARD="${2}"            ; shift 2;;
       --nohvf) USEACCEL=false             ; shift 1;;
@@ -358,12 +370,12 @@ while [ ${#} -gt 0 ]; do
         --qxl) VDISPLAY=spice-app; GPU_CARD=qxl-vga; shift 2;;
       --sound) ENABLESC='true'            ; shift 1;;
     --showcfg) SHOW_CFG='true'            ; shift 1;;
-       --term) TERMINAL="${2}"            ; shift 2;;
+       --term) QMONITOR="${2}"; echo '--term <bin> is deprecated, use --monitor <bin> instead' >&2; shift 2;;
      --usehvf) USEACCEL='true'            ; shift 1;;
      --usekvm) USEACCEL='true'            ; shift 1;;
        --vtap) NET_MODE='tap'; MAC_ADDR="${2}"; shift 2;;
     --windows) set_windows_hardware "${2}"; shift 2;;
-      --xport) DSPLYPRT="${OPTARG}"       ; shift 2;;
+      --xport) PORT_NUM="${2}"            ; shift 2;;
             *) echo "Unkonw argument ${1}"; show_help >&2; exit 1;;
   esac
 done
@@ -472,12 +484,12 @@ case "$(/bin/uname)" in
   Linux)
     ACELTYPE='KVM'
     ${USEACCEL} && KVMACCEL='-enable-kvm' && MACHINE="${MACHINE},accel=kvm"
-    VNC_CMND="/usr/bin/vncviewer localhost:59${DSPLYPRT}"
+    VNC_CMND="/usr/bin/vncviewer localhost:$((5900+PORT_NUM))"
     ;;
   Darwin)
     ACELTYPE='HVF'
     ${USEACCEL} && MACHINE="${MACHINE},accel=hvf"
-    VNC_CMND="open vnc://localhost:59${DSPLYPRT}"
+    VNC_CMND="open vnc://localhost:$((5900+PORT_NUM))"
     ;;
 esac
 
@@ -493,17 +505,32 @@ VMCORES="$((VIRTCORS / VTHREADS))"
 
 case "${VDISPLAY}" in
   *vnc*)
-    VDISPLAY="egl-headless -vnc localhost:${DSPLYPRT}"
+    VDISPLAY="egl-headless -vnc localhost:${PORT_NUM}"
     ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNC_CMND}\" - ${SUDO_USER}" > /dev/null 2>&1 &
   ;;
 # *spice*)
 #   VDISPLAY+=" -device virtio-serial-pic -spice port=60${XPORT},disable-ticketing=on"
 #   VDISPLAY+=" -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0
 #   VDISPLAY+=" -chardev spicevmc,id=spicechannel0,name=vdagent"
-#   [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p 60${XPORT}"
-#   [ -e /usr/bin/remote-viewer] && SPICECMD="/usr/bin/remote-viewer spice://localhost:60${XPORT}"
+#   [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p $((6000+PORT_NUM))"
+#   [ -e /usr/bin/remote-viewer] && SPICECMD="/usr/bin/remote-viewer spice://localhost:$((6000+PORT_NUM))"
 #   ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" &
 # ;;
+esac
+
+case "${QMONITOR}" in
+  console) QMONITOR=stdio;;
+    stdio) true;;
+   telnet) QMONITOR="telnet:127.0.0.1:$((6100+PORT_NUM)),server,nowait";;
+     unix)
+           SCKTFILE="/tmp/qcl_$((6100+PORT_NUM)).sock"
+           QMONITOR="unix:${SCKTFILE},server,nowait"
+           { until [ -e "${SCKTFILE}" ]; do /bin/sleep 1; done; /bin/chown qemu "${SCKTFILE}"; /bin/chmod 770 "${SCKTFILE}"; } &
+        ;;
+        *)
+           [ ! -e "/usr/bin/${QMONITOR}" ] && echo "/usr/bin/${QMONITOR} not found" && exit 1
+           TERMINAL="${QMONITOR}"
+        ;;
 esac
 
 TEMPFILE="$(mktemp)"
@@ -543,7 +570,7 @@ fi
 QEMU_CMD="/usr/bin/qemu-system-x86_64 -runas qemu ${KVMACCEL} ${UEFI_OPT} -m ${RAM_SIZE} \
   -machine ${MACHINE} ${BASE} ${W2K_HACK} -cpu ${VIRT_CPU} \
   -smp cores=${VMCORES},threads=${VTHREADS} \
-  -monitor stdio -display ${VDISPLAY} \
+  -monitor ${QMONITOR} -display ${VDISPLAY} \
   -nic ${NET_MODE},model=${NET_CARD}${MAC_ADDR}${PORT_FWD} \
   ${DEVICES} ${S_DRIVES} ${BOOTPARM}"
 
@@ -561,6 +588,9 @@ if ${SHOW_CFG}; then
   printf '%17s : %s\n' 'VirtIO Balloon'  "$([ -n "${VBALLOON}" ] && echo yes || echo no)"
   printf '%17s : %s\n' 'SCSI Card'       "$([[ "${DEVICES}" =~ scsi ]] && echo "${SCSICARD}" || echo no)"
   printf '%17s : %s\n' 'AHCI Controller' "$([[ "${DEVICES}" =~ ahci ]] && echo yes || echo no)"
+  echo
+  printf '%17s : %s\n' 'QEMU Display'     "${VDISPLAY%% *}"
+  printf '%17s : %s\n' 'QEMU Monitor'     "${TERMINAL:-${QMONITOR}}"
 
   echo "Resulting Command : $(echo "${QEMU_CMD}" | /bin/sed 's/  \+/ /g')"
   exit 0
@@ -570,9 +600,11 @@ if [ -n "${TERMINAL}" ]; then
   ${TERMINAL} -e "/bin/cat '${TEMPFILE}'; exec 30<> ${NTWRK_FD}; ${QEMU_CMD}" &
   /bin/sleep 2 && /bin/rm "${TEMPFILE}"
 else
-  [ -t 1 ] && cat "${TEMPFILE}"
+  [ -t 1 ] && [ "${QMONITOR}" = "stdio" ] && /bin/cat "${TEMPFILE}"
   /bin/rm "${TEMPFILE}"
   [ -n "${NTWRK_FD}" ] && exec 30<> "${NTWRK_FD}"
-  ( eval "set -x; ${QEMU_CMD}" )
+  [ -t 1 ] && { ( eval "set -x; ${QEMU_CMD}" ); } || eval "${QEMU_CMD}"
   [ -n "${NTWRK_FD}" ] && /bin/ip link del link "${SYSNETIF}" name "qclvtap${NUMERATE}" && exec 30>&-
 fi
+
+[ -n "${SCKTFILE}" ] && [ -e "${SCKTFILE}" ] && /bin/rm "${SCKTFILE}"

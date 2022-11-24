@@ -22,7 +22,18 @@ Operation
     --pcfrom <year>          Emulate hardware from <year>
     --ram <MiB>              Specify RAM available to VM
     --sound                  Enable sound
-    --term <term-bin>        Launch QEMU in <term-bin> in background
+    --xport <1..99>          Port offset for VNC, SPICE, and telnet
+    --monitor <monitor>      Specify how qemu-monitor is accessed
+
+       <monitor> is one of the following:
+
+       stdio     (default)   Start monitor in current console
+       telnet                Start monitor at telnet:localhost:61<port>
+       unix                  Start monitor as a unix socket
+       <bin>                 Start monitor in a new console process
+
+       If <monitor> is not stdio, telnet, or unix, then the argument
+       is assumed to be the binary of a terminal emulator.
 
 ### CPU options:
 
@@ -117,4 +128,3 @@ Operation
     --gtk                    Use a GTK window (QEMU default)
     --qxl                    Use QXL/SPICE instead of VNC
     --daemon                 Don't launch SPICE/vncviewer directly
-    --xport                  Specify X11 listening port number
