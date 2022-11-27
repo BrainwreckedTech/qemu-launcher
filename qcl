@@ -526,7 +526,7 @@ case "${QMONITOR}" in
      unix)
            SCKTFILE="/tmp/qcl_$((6100+PORT_NUM)).sock"
            QMONITOR="unix:${SCKTFILE},server,nowait"
-           { until [ -e "${SCKTFILE}" ]; do /bin/sleep 1; done; /bin/chown qemu "${SCKTFILE}"; /bin/chmod 770 "${SCKTFILE}"; } &
+           { until [ -e "${SCKTFILE}" ]; do /bin/sleep 1; done; /bin/chown qemu:kvm "${SCKTFILE}"; /bin/chmod 770 "${SCKTFILE}"; } &
         ;;
         *)
            [ ! -e "/usr/bin/${QMONITOR}" ] && echo "/usr/bin/${QMONITOR} not found" && exit 1
