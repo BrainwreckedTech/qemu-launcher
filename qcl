@@ -367,7 +367,7 @@ while [ ${#} -gt 0 ]; do
       --nokvm) USEACCEL=false             ; shift 1;;
         --ram) RAM_SIZE="${2}"            ; shift 2;;
      --pcfrom) set_hardware "${2}"        ; shift 2;;
-        --qxl) VDISPLAY=spice-app; GPU_CARD=qxl-vga; shift 2;;
+        --qxl) VDISPLAY=spice; GPU_CARD=qxl-vga; shift 1;;
       --sound) ENABLESC='true'            ; shift 1;;
     --showcfg) SHOW_CFG='true'            ; shift 1;;
        --term) QMONITOR="${2}"; echo '--term <bin> is deprecated, use --monitor <bin> instead' >&2; shift 2;;
@@ -450,6 +450,7 @@ case "${GPU_CARD}" in
    cirrus-vga) true;;
    rage128pro) GPU_CARD='ati-vga,model=rage128p';;
    radeon7000) GPU_CARD='ati-vga,model=rv100';;
+      qxl-vga) true;;
          VGA*) true;;
        vmware) GPU_CARD='vmware-svga';;
   vmware-svga) true;;
@@ -508,14 +509,14 @@ case "${VDISPLAY}" in
     VDISPLAY="egl-headless -vnc localhost:${PORT_NUM}"
     ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNC_CMND}\" - ${SUDO_USER}" > /dev/null 2>&1 &
   ;;
-# *spice*)
-#   VDISPLAY+=" -device virtio-serial-pic -spice port=60${XPORT},disable-ticketing=on"
-#   VDISPLAY+=" -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0
-#   VDISPLAY+=" -chardev spicevmc,id=spicechannel0,name=vdagent"
-#   [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p $((6000+PORT_NUM))"
-#   [ -e /usr/bin/remote-viewer] && SPICECMD="/usr/bin/remote-viewer spice://localhost:$((6000+PORT_NUM))"
-#   ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" &
-# ;;
+  *spice*)
+    VDISPLAY="egl-headless -device virtio-serial-pci -spice port=$((6000+PORT_NUM)),disable-ticketing=on"
+    VDISPLAY+=" -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0"
+    VDISPLAY+=" -chardev spicevmc,id=spicechannel0,name=vdagent"
+    [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p $((6000+PORT_NUM))"
+    [ -e /usr/bin/remote-viewer ] && SPICECMD="/usr/bin/remote-viewer spice://localhost:$((6000+PORT_NUM))"
+    ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" &
+  ;;
 esac
 
 case "${QMONITOR}" in
