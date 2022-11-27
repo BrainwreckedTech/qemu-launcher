@@ -310,6 +310,29 @@ function set_vga_resolution {
   done
 }
 
+# Before doing anything, make sure the qemu user exists and is set up
+KVM_GRID="$(/bin/grep kvm /etc/group | /usr/bin/cut -d: -f3)"
+# Make a "complete" match first so that we pass this check quickly if already correctly set up
+if ! /bin/grep -q "^qemu:.*:[0-9]\+:${KVM_GRID}:.*:.*:\(/usr\)\?/s\?bin/nologin$" /etc/passwd; then
+  # If we're here, something isn't set up yet.
+  if ! /bin/grep -q '^qemu:' /etc/passwd; then
+    # 2nd most common scenario is that the user hasn't even been set up.
+    for LCOUNTER in {0..9}; do
+      IDNUMBER=$((KVM_GRID+LCOUNTER))
+      /bin/grep -q "${IDNUMBER}" /etc/passwd || break
+      IDNUMBER=$((KVM_GRID-LCOUNTER))
+      /bin/grep -q "${IDNUMBER}" /etc/passwd || break
+    done
+    /usr/sbin/useradd --no-create-home --uid "${IDNUMBER}" --gid kvm --groups kvm --shell /sbin/nologin qemu
+  else
+    # PEBKAC, now we check all of these
+    /bin/grep -q "^qemu:.*:[0-9]\+:${KVM_GRID}:" /etc/passwd || /usr/sbin/usermod --gid kvm qemu
+    /bin/grep -q "^qemu:.*:\(/usr\)\?/s\?bin/nologin$" /etc/passwd || /usr/sbin/usermod --shell /sbin/nologin qemu
+  fi
+fi
+/bin/grep -q "^kvm:.*:${KVM_GRID}.*[,:]qemu" /etc/group || /usr/sbin/usermod --append --groups kvm qemu
+/bin/grep -q '^qemu:!' /etc/shadow || /usr/sbin/usermod --lock qemu
+
 USEACCEL='true'
 BASE='-nodefaults -parallel none -serial none'
 MACHINE='type=q35'
