@@ -5,11 +5,29 @@ QEMU Launcher is a script designed to simplify QEMU virtual machine management.
 
 Invoking it can be as short and sweet as:
 
-    sudo qcl --drive /path/to/drive.img:virtio
+    # qcl --drive /path/to/drive.img:virtio
 
-...which will allocate 4 threads and 4 GiB of RAM on a PC with a 16-thread CPU
-and 16 GiB of RAM.  Automated allocations aren't a simple 25% of your resources,
-but will scale with the resources available.
+...which will allocate 4 threads and 4 GiB of RAM on a PC with a 12-thread CPU
+and 16 GiB of RAM.  Automated allocations aren't a simple 25% or 33% of your
+resources, but will scale with the resources available.
+
+QEMU Launcher can also greatly simplify setting up guests for Windows:
+
+    # qcl --windows vista --drive /path/to/drive.img:scsi
+
+...will set up qemu with an i440FX+PIIX PC with a Realtek NIC.  AHCI will not be
+available, but a standard VGA adapter and a usb-tablet device will be.
+
+QEMU Launcher also has targets for typical PC setups for various years:
+
+    # qcl --pcfrom 2001 --drive /path/to/drive.img:ide
+
+...will start qemu with a single-threaded pentium4 (coreduo) CPU, max 1GiB
+of RAM, a Cirrus VGA card, an AMD PCnet NIC, and generic PS/2 mouse.
+
+Details on why QEMU Launcher makes the hardware choices it does can be found
+in the wiki under
+[Settings Research Documentation](https://github.com/BrainwreckedTech/qemu-launcher/wiki/Settings-Research-Documentation).
 
 License
 -------
