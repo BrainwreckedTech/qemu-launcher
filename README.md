@@ -1,7 +1,21 @@
 QEMU Launcher
 =============
 
-QEMU Launcher is a script designed to simplify QEMU virtual machine management.  It is licensed under the GPLv3.  It not available under a prior or future version of the GPL.
+QEMU Launcher is a script designed to simplify QEMU virtual machine management.
+
+Invoking it can be as short and sweet as:
+
+    sudo qcl --drive /path/to/drive.img:virtio
+
+...which will allocate 4 threads and 4 GiB of RAM on a PC with a 16-thread CPU
+and 16 GiB of RAM.  Automated allocations aren't a simple 25% of your resources,
+but will scale with the resources available.
+
+License
+-------
+
+QEMU Launcher is licensed under the GPLv3.  It is not available under a prior
+or future version of the GPL.
 
 Prerequisites
 -------------
