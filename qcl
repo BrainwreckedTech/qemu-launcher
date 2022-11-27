@@ -507,7 +507,7 @@ VMCORES="$((VIRTCORS / VTHREADS))"
 case "${VDISPLAY}" in
   *vnc*)
     VDISPLAY="egl-headless -vnc localhost:${PORT_NUM}"
-    ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c DISPLAY=\"${DISPLAY} ${VNC_CMND}\" - ${SUDO_USER}" > /dev/null 2>&1 &
+    ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su ${SUDO_USER} -c '/usr/bin/${VNC_CMND}'" > /dev/null 2>&1 &
   ;;
   *spice*)
     VDISPLAY="egl-headless -device virtio-serial-pci -spice port=$((6000+PORT_NUM)),disable-ticketing=on"
@@ -515,7 +515,7 @@ case "${VDISPLAY}" in
     VDISPLAY+=" -chardev spicevmc,id=spicechannel0,name=vdagent"
     [ -e /usr/bin/spicy ] && SPICECMD="/usr/bin/spicy -h localhost -p $((6000+PORT_NUM))"
     [ -e /usr/bin/remote-viewer ] && SPICECMD="/usr/bin/remote-viewer spice://localhost:$((6000+PORT_NUM))"
-    ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su -c 'DISPLAY=${DISPLAY} ${SPICECMD} > /dev/null 2>&1' - ${SUDO_USER}" &
+    ! ${SHOW_CFG} && ${V_LAUNCH} && /bin/sh -c "/bin/sleep 1; /bin/su ${SUDO_USER} -c '/usr/bin/${SPICECMD}'" > /dev/null 2>&1 &
   ;;
 esac
 
